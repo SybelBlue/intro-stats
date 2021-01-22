@@ -1,0 +1,78 @@
+# RStudio Workshop Day
+
+My first file in **Rmd**, yay!
+
+First we do basic functions
+``` {r basic functions}
+sum(52, 49)
+rep(10, 6)
+rep(6, 10)
+```
+
+Now we do names
+``` {r naming}
+# Store your age as "my_age"
+# Storing things is a good way to save & use later!
+my_age <- 21
+
+# Confirm that your age is stored correctly
+my_age
+
+# Calculate how old you will be in 10 years
+my_age + 10
+```
+
+
+``` {r review}
+# An equivalent syntax to 
+#>>> four <- 2 * 2
+#>>> four
+# or
+#>>> four <- 2 * 2; four
+(four <- 2 * 2)
+
+four * 2
+```
+
+
+``` {r csvs}
+# Import data
+spotify <- read.csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-01-21/spotify_songs.csv")
+```
+
+The unit of observation are *songs*!
+
+``` {r spotify dimensions}
+# the dimensionality of the spotify vector
+dim(spotify)
+
+# number of entries (rows) in the vector, (dim(...)[0])
+nrow(spotify)
+```
+
+``` {r spotify content}
+# the first rows of the vector
+head(spotify)
+
+# the first row of the vector (col headers)
+names(spotify)
+```
+
+
+``` {r self-exploration}
+peaks <- read.csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-22/peaks.csv")
+```
+
+``` {r peaks-peeks}
+# peaks peek:
+head(peaks)
+```
+
+
+``` {r peaks-dimensionality}
+# Peaks:
+nrow(peaks)
+
+# Variables:
+ncol(peaks)
+```

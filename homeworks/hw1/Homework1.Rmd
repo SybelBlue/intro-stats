@@ -1,0 +1,54 @@
+---
+title: "Homework 1"
+author: Logan Caraco
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+
+
+
+\
+\
+
+
+
+## EXERCISE 1
+
+### Part a
+
+
+```{r}
+#If the exercise requires computing, put your code here
+```
+
+
+
+### Part b
+
+```{r}
+#If the exercise requires computing, put your code here
+```
+
+
+
+\
+\
+
+
+
+
+
+
+## EXERCISE 2
+
+### Part a
+
+
+
+### Part b
+
+
+
