@@ -1,0 +1,393 @@
+# Exploring univariate patterns     
+
+
+## Getting started
+
+
+**Directions**    
+
+- Open today's Rmd file linked on the day-to-day schedule. This is where you should take notes. You won't hand in notes, so do so in whatever way is best for your learning.
+
+- Name and save the file.
+
+- Ignoring past advice, do not knit until the end. The chunks in this Rmd are meant to be run and examined one at a time! In fact, you'll get an error if you try to knit right away.
+
+
+\
+\
+
+
+**Goals**
+
+- **Statistical Modeling** is the art, science, and design of turning data into information. We'll start today with **univariate** exploratory analysis. [You can find the slides for today's preparatory video here.](https://drive.google.com/file/d/198ijb4Zf0pPXZclvof2Sr4aBa7WU5Gbf/view?usp=sharing)
+
+- To learn from data, we need software. Learning how to use software will thus be an important part of this course -- without it, we could *learn* about statistics but couldn't *do* statistics.  Our goal will be to do both, starting today.  
+
+- Learn about making visualizations using the `ggplot()` function. NOTE: `gg` is short for "grammar of graphics". The best way to learn about `ggplot()` is to just play around. You can find this handy cheat sheet in the [course manual appendix](https://rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf).
+
+- Learn about calculating numerical summaries using the `dplyr` package and syntax.
+
+- In the first exercises, you'll re-construct the plots you saw in today's videos. You'll subsequently extend these tools to new variables.
+
+
+
+\
+\
+\
+\
+
+
+
+## Exercises
+
+The dataset we will analyze in this assignment comes from Capital Bikeshare, the bike-sharing service for the Washington DC area. The following is the **codebook:**
+
+variable              meaning
+--------------------- ----------------------------------------------------
+`date`                date in format YYYY-MM-DD
+`season`              winter, spring, summer, or fall
+`year`                2011 or 2012
+`month`               3-letter month abbreviation
+`day_of_week`         3-letter abbreviation for day of week
+`weekend`             TRUE if the case is a weekend, FALSE otherwise
+`holiday`             is the day a holiday? (yes or no)
+`temp_actual`         temperature in degrees Fahrenheit
+`temp_feel`           what the temperature *feels* like in degrees Fahrenheit
+`humidity`            fraction from 0 to 1 giving the humidity level
+`windspeed`           wind speed in miles per hour
+`weather_cat`         `categ1`: clear to partly cloudy <br> `categ2`: mist + some clouds <br> `categ3`: light precipitation to thunderstorms
+`riders_casual`       count of daily rides by casual users (non-registered users)
+`riders_registered`   count of daily rides by registered users
+`riders_total`        count of total daily rides (`riders_casual + riders_registered`)
+
+
+\
+\
+\
+
+
+
+### Exercise 1: Hello!
+
+- Introduce yourselves.
+- What other class are you taking this module?
+- Who will share their screen (understanding that whoever shares their screen will make mistakes, a necessary part of learning RStudio!)?
+    
+
+\
+\
+
+
+
+### Exercise 2: Import the data
+
+Import the data from Prof Shuman's website and store it as `bikes`:
+
+https://www.macalester.edu/~dshuman1/data/155/bike_share.csv
+
+NOTE: The original dataset comes from the [UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/Bike+Sharing+Dataset).
+    
+``` {r load-dataset}
+bikes <- read.csv("https://www.macalester.edu/~dshuman1/data/155/bike_share.csv")
+"Test to make sure it was imported"
+dim(bikes)
+```
+
+
+\
+\
+
+
+
+### Exercise 3: Exploring the data structure
+
+
+Check out the basic features of the `bikes` data set.    
+
+```{r examine-bikes}
+# Examine the first six cases
+head(bikes)
+
+# Find the dimensions of the data
+dim(bikes)
+```
+
+\
+\
+
+### Exercise 4: Loading a visualization package
+
+To make `ggplot()` visualizations, you need to have the `ggplot2` package loaded in your Rmd:
+
+```{r load-ggplot2}
+# Load the ggplot2 package
+library(ggplot2)
+```
+
+
+\
+\
+
+
+### Exercise 5: Visualizing a categorical variable: bar plots
+
+The `weather_cat` variable is *categorical*. Thus we can visualize its patterns using a **bar plot**. Separately run each chunk below and add a comment (`#`) about what you see. The goal isn't to memorize the code but to start observing patterns in how the code works.
+
+```{r basic-plot}
+# creates the basic plot, without data?
+ggplot(bikes, aes(x = weather_cat))
+```    
+
+```{r basic-bar}
+# gives us bar plot of the occurence of each value
+ggplot(bikes, aes(x = weather_cat)) + 
+  geom_bar()
+```    
+
+
+\
+\
+
+
+### Exercise 6: Visualizing a quantitative variable: boxplots
+
+The `riders_registered` variable is *categorical*. There are multiple approaches to visualizing its patterns. We'll start with a **bar plot**. As above, separately run each chunk below and add a comment (`#`) about what you see.
+
+```{r basic-riders-registered}
+# again, lays out the x-axis of the plot, and nothing else
+ggplot(bikes, aes(x = riders_registered))
+```    
+
+```{r basic-boxplot}
+# Makes the box and whisker plot from the data above
+ggplot(bikes, aes(x = riders_registered)) + 
+  geom_boxplot()
+```
+
+
+\
+\
+
+
+### Exercise 7: Visualizing a quantitative variable: histograms & density plots (part 1)
+
+
+CHALLENGE: Based on what you learned above, take 3 minutes to try and adjust to code to visualize `riders_registered` using a *histogram* and/or density plot.
+    
+
+```{r basic-histogram}
+# Makes the box and whisker plot from the data above
+ggplot(bikes, aes(x = riders_registered)) + 
+  geom_histogram(binwidth=500)
+```
+
+\
+\
+
+
+### Exercise 8: Visualizing a quantitative variable: histograms (part 2)
+
+
+Separately run each chunk below and add a comment (`#`) about what you see.    
+
+
+```{r basic-density}
+# gives the density function for riders registered
+ggplot(bikes, aes(x = riders_registered)) + 
+  geom_density()
+```
+
+```{r riders-registered-histogram}
+# creates a histogram for riders_registered
+ggplot(bikes, aes(x = riders_registered)) + 
+  geom_histogram()
+```
+
+```{r riders-histogram-colored}
+# Recolors border between bins
+ggplot(bikes, aes(x = riders_registered)) + 
+  geom_histogram(color = "white")
+```
+
+```{r riders-histogram-rebinned}
+# huge bins with border
+ggplot(bikes, aes(x = riders_registered)) + 
+  geom_histogram(color = "white", binwidth = 2500)
+```
+
+```{r riders-histogram-small-bins}
+# Tiny bordered bins
+ggplot(bikes, aes(x = riders_registered)) + 
+  geom_histogram(color = "white", binwidth = 25)
+```
+
+\
+\
+
+
+### Exercise 9: Reflection: goldilocks!
+
+
+The different histograms visualized the *same data* but look quite different. Which of the histograms provided you with the "best" insights into ridership?  Why?  That is, what are the trade-offs in using small vs large bins?
+
+**Fun fact:** Choosing bin widths is a "goldilocks problem". Just like the Goldilocks character in a strange fairy tale about 3 bears, we don't want bins that are too wide or too narrow, but bins that are just right.
+
+![](https://upload.wikimedia.org/wikipedia/commons/3/3f/The_three_bears_pg_11.jpg)
+*Wikimedia commons*
+
+
+\
+\
+
+
+### Exercise 10: Numerical summaries
+
+
+Whereas the `ggplot2` package is great for visualizations, `dplyr` is great for numerical summaries. Play around and comment on what you see:
+
+```{r dplyr-example}
+# Load package
+library(dplyr)
+
+# shows a table with the mean
+bikes %>% 
+  summarize(mean(riders_registered))
+```
+
+```{r summarize-example}
+# shows a table with the mean and median
+bikes %>% 
+  summarize(mean(riders_registered), median(riders_registered))
+```
+
+```{r summarize-min-max-example}
+# shows two tables with min/max and standard deviation
+bikes %>% 
+  summarize(min(riders_registered), max(riders_registered))
+bikes %>% 
+  summarize(sd(riders_registered))
+```    
+
+
+\
+\
+
+
+### Exercise 11: Your turn!
+
+Construct and interpret visual and numerical summaries of some other variables in the data set:
+
+```{r practice}
+# Plot stub
+base_plot <- bikes %>%
+    ggplot(aes(x = temp_actual))
+
+# Construct a plot of temp_actual
+base_plot + geom_density()
+
+# Construct another plot of temp_actual using a different technique
+base_plot + geom_histogram(bins = 10, color = "white")
+
+# Construct yet another plot of temp_actual using yet a different technique
+base_plot + geom_boxplot()
+
+# Calculate summaries of the trend in DC temperatures)
+bikes %>%
+  summarise(mean(temp_feel), IQR(temp_feel))
+
+# Calculate summaries of the variability in DC temperatures
+bikes %>% 
+  summarize(min(temp_feel), max(temp_feel))
+
+# Construct a plot of holiday
+bikes %>% 
+  ggplot(aes(x = holiday)) + 
+  geom_bar(color = "white")
+```
+
+
+\
+\
+
+
+### Exercise 12: Different ways to think about data visualization 
+
+In working with and visualizing data, it's important to keep in mind what a data point *represents*. It can reflect the experience of a real person. It might reflect the sentiment in a piece of art. It might reflect history. We've taken one very narrow and technical approach to data visualization. Check out the following examples. You will use them as inspiration for the next question of the week!
+
+- [decolonizing data viz](https://stephanieevergreen.com/decolonizing-data-viz/)
+- [dear data](http://www.dear-data.com/by-week)
+- [W.E.B. DuBois](https://hyperallergic.com/476334/how-w-e-b-du-bois-meticulously-visualized-20th-century-black-america/)
+- [phase change project (by Prof Kim, Mac research students)](http://www.variableprojects.com/#/phase-change/)
+
+
+\
+\
+
+
+### Exercise 13: Clean, knit, and save your work!
+
+\[\mathcal{Done!}\]
+
+\
+\
+\
+\
+
+## Optional: digging deeper
+
+The above exercises are designed to help you practice the foundational concepts in this course. To build a deeper understanding and practice, you're encouraged to consider the following exercises as well. I trust that you will make the best decision for yourself at this particular time.
+
+
+\
+
+
+
+### Exercise 14: Grammar
+
+Think of the first language you learned.  Though you certainly haven't memorized every word in that language, your understanding of syntax, grammar, and sentence structure provide the necessary foundation for communication.  You can also build upon this foundation (eg: learn new words) as needed.  Similarly, statistical "programming" is a language.  It has a syntax, grammar, and vocabulary. With that:    
+
+a. Summarize your observations about the `ggplot` grammar. For example:    
+
+    - what is the first argument we specify?
+    - what do you think `aes` stands for and what info do we put inside `aes()`?
+    - when do we end lines with `+`? when don't we?
+    - what's the purpose of the second row of `ggplot()` code? what does `geom` mean?    
+
+
+
+b. Summarize your observations about the `dplyr` grammar. For example: what's the first thing we write? What do we put at the end of that line? What comes next? 
+
+    
+    
+
+\
+\
+
+
+    
+    
+### Exercise 15: Customizing!
+
+Though you will naturally absorb some RStudio code throughout the semester, being an effective statistical thinker and "programmer" does not require that we memorize *all* code.  That would be impossible.  In contrast, we will focus on developing a foundation upon which we can build.  Using the foundation you built today, do some digging online to learn how to customize your visualizations.    
+
+a.  For the histogram below, add a title and more meaningful axis labels.  Specifically, title the plot "My nice histogram", change the x-axis label to "rides per day" and y-axis label to "number of days".  HINT: Do a Google search for something like "add axis labels ggplot".  
+
+    ```{r}
+    # Add a title and axis labels
+    ggplot(bikes, aes(x = riders_registered)) + 
+      geom_histogram()
+    ```    
+
+b. Adjust the code below in order to color the bars green.  NOTE: Color can be an effective tool, but here it is simply gratuitous.     
+
+    ```{r}
+    # Make the bars green
+    ggplot(bikes, aes(x = weather_cat)) + 
+      geom_bar()
+    ```   
+
+c. Check out the `ggplot2` cheat sheet in the [course manual appendix](https://rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf). Try making some of the other kinds of univariate plots outlined there.    
+
+d. What else would you like to change about your plot?  Try it!
+
+
