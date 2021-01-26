@@ -499,14 +499,44 @@ summary(bike_model_2) $ coefficients</code></pre>
 <h3>Exercise 13: Your turn</h3>
 <p>Use <code>dplyr</code> verbs to complete each task below.</p>
 <pre class="r"><code># Keep only information about the humidity and day of week
-
-# Keep only information about the humidity and day of week using a different approach
-
-# Keep only information for Sundays
-
-# Keep only information for Sundays with temperatures below 50
-
-# Calculate the maximum and minimum temperatures</code></pre>
+new_bikes %&gt;%
+  select(humidity, day_of_week)</code></pre>
+<pre><code>##    humidity day_of_week
+## 1  0.805833         Sat
+## 2  0.696087         Sun
+## 3  0.437273         Mon
+## 4  0.590435         Tue
+## 5  0.436957         Wed
+## 6  0.518261         Thu
+## 7  0.498696         Fri
+## 8  0.535833         Sat
+## 9  0.434167         Sun
+## 10 0.482917         Mon</code></pre>
+<pre class="r"><code># Keep only information about the humidity and day of week using a different approach
+new_bikes %&gt;%
+  select(humidity, day_of_week) %&gt;%
+  head(4)</code></pre>
+<pre><code>##   humidity day_of_week
+## 1 0.805833         Sat
+## 2 0.696087         Sun
+## 3 0.437273         Mon
+## 4 0.590435         Tue</code></pre>
+<pre class="r"><code># Keep only information for Sundays
+new_bikes %&gt;%
+  filter(day_of_week == &quot;Sun&quot;)</code></pre>
+<pre><code>##         date temp_feel humidity riders_registered day_of_week
+## 1 2011-01-02  63.83651 0.696087               670         Sun
+## 2 2011-01-09  42.45575 0.434167               768         Sun</code></pre>
+<pre class="r"><code># Keep only information for Sundays with temperatures below 50
+new_bikes %&gt;%
+  filter(day_of_week == &quot;Sun&quot;, temp_feel &lt; 50)</code></pre>
+<pre><code>##         date temp_feel humidity riders_registered day_of_week
+## 1 2011-01-09  42.45575 0.434167               768         Sun</code></pre>
+<pre class="r"><code># Calculate the maximum and minimum temperatures
+new_bikes %&gt;%
+  summarise(min(temp_feel), max(temp_feel))</code></pre>
+<pre><code>##   min(temp_feel) max(temp_feel)
+## 1       42.45575       64.72625</code></pre>
 </div>
 </div>
 </div>

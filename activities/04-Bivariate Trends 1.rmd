@@ -243,9 +243,6 @@ Residual:
 \
 
 
-
-
-
 ### Exercise 9: Clean, knit, and save your work!
 
 
@@ -341,15 +338,24 @@ Use `dplyr` verbs to complete each task below.
    
 ```{r}
 # Keep only information about the humidity and day of week
+new_bikes %>%
+  select(humidity, day_of_week)
 
 # Keep only information about the humidity and day of week using a different approach
+new_bikes %>%
+  select(humidity, day_of_week) %>%
+  head(4)
 
 # Keep only information for Sundays
+new_bikes %>%
+  filter(day_of_week == "Sun")
 
 # Keep only information for Sundays with temperatures below 50
+new_bikes %>%
+  filter(day_of_week == "Sun", temp_feel < 50)
 
 # Calculate the maximum and minimum temperatures
+new_bikes %>%
+  summarise(min(temp_feel), max(temp_feel))
 
 ```
-
-
