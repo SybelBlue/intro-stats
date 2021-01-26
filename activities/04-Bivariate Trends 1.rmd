@@ -1,0 +1,355 @@
+# Modeling bivariate trend: Part 1
+
+
+\
+\
+
+
+## Getting started
+
+
+```{r}
+# Load packages & import data
+library(ggplot2)
+library(dplyr)
+bikes <- read.csv("https://www.macalester.edu/~dshuman1/data/155/bike_share.csv")
+```
+
+
+
+**Directions**    
+
+- Open today's Rmd file linked on the day-to-day schedule. Name and save the file.
+
+- Do not knit until the end. The chunks in this Rmd are meant to be run and examined one at a time!
+
+
+\
+\
+
+
+**Goals**
+
+- **Statistical Modeling** is the art, science, and design of turning data into information. We'll move on today with **bivariate** exploratory analysis. [You can find the slides for today's preparatory video here.](https://drive.google.com/file/d/10ujRg6R4x3Kq8xF0uRudNgjCXT4ek6Py/view?usp=sharing)
+
+- Recall that software helps us *do* statistics. In today's code, you might often ask yourself: "what does this part do?". There's no need to wait for the instructor to visit your breakout room to answer this question. The best way to learn about code is by playing around -- if you remove or change that part of the code, what happens?!
+
+- Learn how to build linear regression models using the `lm()` function.
+
+- In the first exercises, you'll re-construct the model and plots you saw in today's video. You'll subsequently extend these tools to new settings.
+
+
+
+
+\
+\
+\
+\
+
+
+
+
+## Exercises
+
+
+### Exercise 1: Hello!
+
+
+Introduce yourselves, share your dream breakfast, and decide who will share their screen.
+
+\[\mathcal{Done!}\]
+
+### Exercise 2: Constructing scatterplots
+
+In these first exercises, we'll explore the relationship between `riders_registered` and `temp_feel`. Separately run each chunk below and add a comment (`#`) about what you see. The goal isn't to memorize the code but to start observing patterns in how the code works.
+    
+```{r}
+# just a blank plot right now
+ggplot(bikes, aes(x = temp_feel, y = riders_registered))
+```    
+    
+```{r}
+# ... now with geometry (data on the plot)
+ggplot(bikes, aes(x = temp_feel, y = riders_registered)) +
+  geom_point()
+```    
+
+Seems like there's some kind of general positive trend.
+  
+```{r}
+# ... added a regression line
+ggplot(bikes, aes(x = temp_feel, y = riders_registered)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE)
+```    
+
+*Et voila!* A positive trend with a regression line.
+
+\
+\
+
+### Exercise 3: Modeling trend: Part 1
+
+The scatterplot of `riders_registered` vs `temp_feel` exhibits the **trend** in this relationship as well as the degree to which districts **vary** from this trend. The linear regression trend line is drawn in your scatterplot above. Let's dig into the details. Chunk by chunk, take note of the syntax:
+    
+```{r}
+# Construct and save the model as bike_model_1
+# What's the purpose of "riders_registered ~ temp_feel": 
+#   specifying the data for the x- and y-axes
+# What's the purpose of "data = bikes":
+#   this tells `lm` where to pull the given headers from
+bike_model_1 <- lm(riders_registered ~ temp_feel, data = bikes)
+```
+    
+```{r}
+# A long summary of the model stored in bike_model_1
+summary(bike_model_1)
+```
+
+```{r}
+# A simplified model summary
+summary(bike_model_1)$coefficients
+```    
+ 
+
+\
+\
+
+
+### Exercise 4: Modeling trend: Part 2
+
+Focus on the simplified model summary. Use this information to write out a formula for the linear trend exhibited in the scatterplot above. (This should be similar to the formula you saw on the video!)
+    
+\[\texttt{riders_registered} = -667.91568 + 57.89236 * \texttt{temp_feel}\]
+
+RECALL: Since we didn't observe any temperatures near 0, it doesn't make sense to interpret the intercept (-667.916) -- it simply summarizes where the linear trend "lives". Further, the `temp_feel` coefficient (57.892) indicates that, on average, for every extra 1 degree increase in temperature, we expect nearly 58 more riders.
+
+    
+\
+\
+
+
+### Exercise 5: Predictions & residuals
+
+On August 17, 2012, the `temp_feel` was 53.816 degrees and there were 5665 riders. We can get data for this day using the `filter()` and `select()`  `dplyr` functions (note, but don't worry about the syntax -- we haven't learned this yet):
+    
+```{r}
+bikes %>% 
+  filter(date == "2012-08-17") %>% 
+  select(riders_registered, temp_feel, windspeed) 
+```
+
+a. Peak back at the scatterplot. Identify which point corresponds to August 17, 2012. Is it close to the trend?       
+
+\[No!\]
+
+b. Use your model formula from the previous exercise to *predict* the ridership on August 17, 2012 from the temperature on that day. (That is, where do days with this temperature fall on the model trend line?)
+
+\[--667.91568 + 57.89236 * 53.816 = 2447.619\]
+
+c. Check your part b calculation using the `predict()` function. Take careful note of the syntax!    
+    ```{r}
+    predict(bike_model_1, newdata = data.frame(temp_feel = 53.816))
+    ```
+
+d. Calculate the **residual** or **prediction error**, ie. how far the actual *observed* ridership falls from the *model prediction* or trend:    
+    
+    residual = observed y - predicted y = ???
+        
+\[5665 - 2447.619 = 3217.381\]    
+
+\
+\
+
+
+### Exercise 6: Interpreting residuals
+
+a. Are days with positive residuals above or below the trend?
+
+Above.
+
+b. Does this mean that the model over- or under-estimates ridership on these days?
+
+Under-estimate.
+
+c. Are days with negative residuals above or below the trend?
+
+Below.
+
+d. Does this mean that the model over- or under-estimates ridership on these days?
+    
+Over-estimate.
+
+
+\
+\
+
+
+### Exercise 7: Your turn: windspeed
+
+Let's turn our attention to the relationship between `riders_registered` and `windspeed`.
+    
+```{r}
+# Construct a visualization of this relationship
+# Include a representation of the relationship trend
+
+ggplot(bikes, aes(y = riders_registered, x = windspeed)) + 
+  geom_point() +                         # <<< plot
+  geom_smooth(method = "lm", se = FALSE) # <<< trend
+```
+
+``` {r}
+# Use lm to construct a model of riders_registered vs windspeed
+# Save this as bike_model_2
+
+bike_model_2 <- lm(riders_registered ~ windspeed, data = bikes)
+
+# Get a short summary of this model
+
+summary(bike_model_2) $ coefficients
+```
+    
+
+\
+\
+
+
+### Exercise 8: Interpreting the results
+
+a. Summarize your observations from the visualizations.
+
+There is a negative trend of riders modeled by windspeed. 
+It seems weak (thanks professor!)
+
+b. Write out a formula for the model trend.
+
+\[\texttt{riders_registered} = 4490.09761 -65.34145 * \texttt{windspeed} \]
+
+c. Interpret both the intercept and the windspeed coefficient. THINK: What does a negative slope indicate?
+
+The windier it is, the less riders are predicted to be out, and there are many
+riders who want to ride with no wind.
+
+d. Use this model to predict the ridership on August 17, 2012 and calculate the corresponding residual. HINT: You'll first need to find the windspeed on this date!  
+
+Prediction:
+\[4490.09761 -65.34145 * 15.50072 = 3447.258 \]
+
+
+Residual:
+\[5665 - 3447.258 = 2117.742\]
+
+\
+\
+
+
+
+
+
+### Exercise 9: Clean, knit, and save your work!
+
+
+
+\
+\
+\
+\
+
+
+
+## Encouraged: data drill
+
+
+You're encouraged to work through the exercises below to continue building your `dplyr` skills. These skills are important to data cleaning and digging, which in turn is important to really making meaning of our data. To do so, we'll work with a simpler set of 10 data points:
+
+```{r}
+new_bikes <- bikes %>% 
+  select(date, temp_feel, humidity, riders_registered, day_of_week) %>% 
+  head(10)
+```
+
+
+
+\
+\
+
+
+### Exercise 10: verb 1: summarize
+
+Thus far, in the `dplyr` grammar you've seen 3 **verbs** or action words: `summarize()`, `select()`, `filter()`. Try out the following code and then summarize the point of the `summarize()` function:    
+    
+```{r}
+new_bikes %>% 
+  summarize(mean(temp_feel), mean(humidity))
+```
+    
+
+
+\
+\
+
+
+
+### Exercise 11: verb 2: select
+
+Try out the following code and then summarize the point of the `select()` function:    
+
+```{r}
+new_bikes %>% 
+  select(date, temp_feel)
+```
+
+```{r}
+new_bikes %>% 
+  select(-date, -temp_feel)
+```
+    
+
+\
+\
+
+
+
+### Exercise 12: verb 3: filter
+
+Try out the following code and then summarize the point of the `filter()` function:    
+
+```{r}
+new_bikes %>% 
+  filter(riders_registered > 850)
+```
+
+```{r}
+new_bikes %>% 
+  filter(day_of_week == "Sat")
+```
+
+```{r}
+new_bikes %>% 
+  filter(riders_registered > 850, day_of_week == "Sat")
+```
+
+
+\
+\
+
+
+
+### Exercise 13: Your turn
+
+Use `dplyr` verbs to complete each task below.
+   
+```{r}
+# Keep only information about the humidity and day of week
+
+# Keep only information about the humidity and day of week using a different approach
+
+# Keep only information for Sundays
+
+# Keep only information for Sundays with temperatures below 50
+
+# Calculate the maximum and minimum temperatures
+
+```
+
+

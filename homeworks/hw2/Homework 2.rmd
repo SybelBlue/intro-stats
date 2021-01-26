@@ -1,0 +1,97 @@
+---
+title: "Homework 2"
+author: Logan Caraco
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+``` {r prelude}
+library(ggplot2)
+library(dplyr)
+library(fivethirtyeight)
+
+library(magrittr)
+
+data("bechdel")
+```
+
+
+\
+\
+
+
+
+## EXERCISE 1
+
+## Part a
+``` {r process-bechdel}
+# Define a new variable which measures years_since_1900
+bechdel %<>% mutate(years_since_1900 = year - 1900)
+
+# NOTE: var-name %<>% func is syn sugar for var-name <- var-name %>% func
+```
+
+```{r peek-bechdel}
+bechdel %>% 
+  select(year, years_since_1900) %>%
+  head(3)
+```
+
+## Part b
+
+``` {r add-mils}
+bechdel %<>% 
+  mutate(budget_mil = budget / 1e6) %>%
+  mutate(intgross_mil = intgross / 1e6)
+```
+
+
+``` {r peek-mils}
+bechdel %>% 
+  select(budget_mil, intgross_mil) %>% 
+  head(3)
+```
+
+\
+\
+
+
+## EXERCISE 2
+
+``` {r}
+# How many films are in the dataset?
+nrow(bechdel)
+
+# When was the oldest film in the dataset made?
+
+# When was the most recent film in the dataset made?
+
+# What is the median film budget in 2013 dollars?
+
+# What films had budgets that exceeded 300 million in 2013 dollars?
+# (Just show the films and budgets, not all variables)
+
+# What films were made in 1971?
+# (Just show the films and year, not all variables)
+
+# What were the budget_mil and intgross_mil values for "Titanic"?
+# (Just show the budget_mil and intgross_mil values)
+
+```
+
+## Exercise 3
+
+``` {r}
+```
+
+
+\
+\
+
+
+## Exercise 4
+
+``` {r}
+```

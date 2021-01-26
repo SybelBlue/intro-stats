@@ -1,6 +1,6 @@
 ---
 title: "Homework ????"
-author: ???
+author: Logan Caraco
 output: 
   html_document:
     toc: true
@@ -8,11 +8,8 @@ output:
 ---
 
 
-
-
 \
 \
-
 
 
 ## EXERCISE 1
@@ -33,30 +30,19 @@ output:
 ```
 
 
-
 \
 \
-
-
-
-
 
 
 ## EXERCISE 2
 
 ### Part a
 
-
+``` {r}
+```
 
 ### Part b
 
-
-
-
-
-
-        
-
-
-
+``` {r}
+```
 
