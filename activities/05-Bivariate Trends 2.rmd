@@ -1,0 +1,328 @@
+# Modeling bivariate trend: Part 2
+
+
+\
+\
+
+
+
+## Getting started
+
+
+```{r}
+# Load packages & import data
+library(ggplot2)
+library(dplyr)
+bikes <- read.csv("https://www.macalester.edu/~dshuman1/data/155/bike_share.csv")
+```
+
+\
+\
+
+
+**Directions**
+
+Same as usual! One new thing you'll see are R chunks labeled `HINT CODE`. These are here to provide some code hints. Don't type in or change these in any way.
+
+\
+\
+
+
+**Goals**
+
+Explore how to visualize, model, and interpret **bivariate** relationships between a quantitative response variable y and **categorical predictor** x.
+
+
+\
+\
+
+
+## Exercises
+
+
+### Exercise 1: Hello!
+
+Who are you, how are you, and who will share their screen?
+   
+
+\
+\
+
+
+### Exercise 2: Step 1: Visualizations
+
+As in the video, we'll start by visualizing our relationship of interest, that between `riders_registered` and `weekend`. Separately run each chunk below, with two plots. Comment (`#`) on what changes in the code / output. 
+    
+```{r}
+# Univariate boxplot
+ggplot(bikes, aes(y = riders_registered)) + 
+  geom_boxplot()
+
+# bivariate boxplot
+ggplot(bikes, aes(y = riders_registered, x = weekend)) + 
+  geom_boxplot()
+``` 
+
+```{r}
+# Univariate density plot
+ggplot(bikes, aes(x = riders_registered)) + 
+  geom_density()
+
+# More even distribution when not weekends, but tends to be higher than on weekends
+ggplot(bikes, aes(x = riders_registered, color = weekend)) + 
+  geom_density()
+```
+    
+```{r}
+# Univariate histogram
+ggplot(bikes, aes(x = riders_registered)) + 
+  geom_histogram(color = "white")
+
+# obviously more data points for the weekdays
+ggplot(bikes, aes(x = riders_registered, color = weekend)) + 
+  geom_histogram(color = "white") + 
+  facet_wrap(~ weekend)
+``` 
+    
+
+
+\
+\
+
+
+### Exercise 3: Numerical summaries of univariate trend
+
+Let's follow up the viz with some numerical summaries. Calculate the mean `riders_registered` value across all days.
+
+```{r eval = FALSE}
+# HINT CODE: don't change this
+bikes %>% 
+  ___(mean(___))
+```    
+
+```{r}
+# Your solution
+bikes %>%
+  summarize(mean(riders_registered))
+```    
+
+
+\
+\
+
+
+### Exercise 4: Numerical summaries of bivariate trend    
+To summarize the trends we observed in the grouped plots above, we can calculate the mean of `riders_registered` values on weekends vs weekdays. This requires the inclusion of the `group_by()` function:
+
+```{r eval = FALSE}
+# HINT CODE
+# Calculate mean riders_registered by group
+bikes %>% 
+  group_by(weekend) %>% 
+  ___(mean(___))
+```    
+
+```{r}
+# Your solution
+bikes %>% 
+  group_by(weekend) %>% 
+  summarize(mean(riders_registered))
+``` 
+
+\
+\
+
+
+### Exercise 5: Pause and reflect
+
+- Examine and interpret the group mean measurements. Make sure that you can match these numbers up with what you see in the plots.
+
+\[\mathcal{Done!}\]
+
+- Further, note that `riders_registered` measures ridership for bikeshare *members* (as opposed to casual riders). Explain why it thus makes sense that ridership tends to be lower on weekends.
+
+It is likely that bikeshare members use it mostly as transit to and from work so they likely would not use it on weekends.
+
+
+\
+\
+
+
+### Exercise 6: Modeling trend
+
+The plots and mean calculations provide *some* insight into the relationship between `riders_registered` and `weekend`. Next, let's *model* the trend in this relationship. After examining the summary table below, complete the model formula:
+
+\
+
+\[\texttt{riders_registered} = 3925.5 - 937.6~ \texttt{weekendTRUE}\]
+
+\   
+
+
+```{r}
+# Construct the model
+bike_model_3 <- lm(riders_registered ~ weekend, data = bikes)
+
+# Summarize the model
+summary(bike_model_3)$coefficients
+```
+
+    
+\
+\
+
+
+---
+
+**PAUSE: Categorical predictors**
+
+Notice that our `weekend` variable shows up as `weekendTRUE` in the model. This is a **numerical indicator** of whether the observed day fell on a weekend:    
+    
+- weekendTRUE = 1 if the day is on a weekend (weekend = TRUE)
+- weekendTRUE = 0 otherwise (weekend = FALSE)
+
+\
+
+NOTE: We do not see `weekendFALSE` in the model output.  This is because `FALSE` is the **reference level** of the `weekend` variable (it's first alphabetically).  You'll see below that it is, indeed, still in the model.  You'll also see why the term "reference level" makes sense!
+  
+---
+
+
+\
+\
+
+
+
+### Exercise 7: Making sense of the model
+
+Recall our model:  riders_registered = 3925.5298 - 937.6202 weekendTRUE
+
+a. Use the model to summarize the typical `riders_registered` on *weekend* days.  HINT: plug in `weekendTRUE = 1`.
+```{r}
+3925.5298 - 937.6202 * 1
+```
+
+b. Similarly, summarize the typical `riders_registered` on *weekdays*.  HINT: plug in `weekendTRUE = 0`.    
+```{r}
+3925.5298 - 937.6202 * 0
+```
+
+c. Re-examine these 2 calculations.  Where have you seen these numbers before?!    
+    
+
+\
+\
+
+
+### Exercise 8: Challenge: interpreting coefficients
+
+Recall that our model formula, riders_registered = 3925.5298 - 937.6202 weekendTRUE, is *not a formula for a line*.  Thus we can't interpret the coefficients as we did in the model of `riders_registered` vs the quantitative predictor `trump_margin_2016`.  Taking this into account and reflecting upon your calculations above...    
+a. Interpret the intercept coefficient (`3925.5298`) in a newspaper-appropriate way.  
+
+b. Interpret the `weekendTRUE` coefficient (`-937.6202`) in a newspaper-appropriate way.  Think: where did you use this value in the prediction calculations above?    
+    
+    
+    
+\
+\
+
+
+
+### Exercise 9: You try: weather_cat
+
+Consider modeling `riders_registered` by `weather_cat`, a categorical predictor with **three categories**: `categ1` (pleasant weather), `categ2` (moderate weather), and `categ3` (severe weather).
+
+```{r}
+# Construct 2 separate visualizations of the relationship between riders_registered and weather_cat    
+ggplot(bikes, aes(x = riders_registered, color = weather_cat)) + 
+  geom_density()
+
+ggplot(bikes, aes(x = riders_registered, color = weather_cat)) + 
+  geom_histogram(color = "white", bins = 20) + 
+  facet_wrap(~ weather_cat)
+
+# Calculate the mean riders_registered for each of the three weather_cat groups   
+bikes %>%
+  group_by(weather_cat) %>%
+  summarise(mean(riders_registered))
+
+# Use lm to construct a model of riders_registered vs weather_cat
+# Save this as bike_model_4
+bike_model_4 <- lm(riders_registered ~ weather_cat, data = bikes)
+
+
+# Get a short summary of this model    
+summary(bike_model_4)$coefficients
+```
+    
+
+
+\
+\
+
+
+
+### Exercise 10: Interpreting the results: Part I
+
+a. Summarize your observations from the visualizations.
+
+There are less and less points for more extreme weathers. Cat 1 and 2 weather are more similar than cat 3.
+
+b. Write out a formula for the model trend.
+
+\[\texttt{riders_registered} = 3912.76 - 564.2458~\texttt{cat2} - 2294.95~ \texttt{cat3}\]
+
+c. Which of the three `weather_cat` categories is the **reference level**?  HINT: Which category is first alphabetically and does not show up in the model formula?
+
+\[\texttt{cat1}\]
+
+\
+\
+
+
+### Exercise 11: Interpreting the results: Part II
+
+In a newspaper-appropriate way, interpret each of the 3 coefficients in the model.  To do so, take note that:
+- `weather_catcateg2` is 1 for days with category 2 weather & 0 otherwise    
+  On category 2 days, we often lose about 600 riders.
+- `weather_catcateg3` is 1 for days with category 3 weather & 0 otherwise    
+  On category 3 days, we often lose about 2300 riders.
+
+With this in mind, before interpreting the coefficients, it might help to use the model to predict...    
+
+- `riders_registered` for days with category 1 weather;    
+\[3912\]
+- `riders_registered` for days with category 2 weather; and    
+\[3348\]
+- `riders_registered` for days with category 3 weather.    
+\[1618\]
+
+\
+\
+
+
+
+### Exercise 12: Clean, knit, and save your work!
+
+\[\mathcal{Done!}\]
+
+\
+\
+\
+\
+
+
+
+## Optional: digging deeper
+
+### Exercise 13: One more time
+
+Visualize and model the relationship between `riders_registered` and `day_of_week`. Use these to identify the day of the week on which we expect the lowest ridership / highest ridership.
+    
+    
+
+
+  
+
+
+
