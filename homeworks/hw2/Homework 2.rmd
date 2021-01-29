@@ -65,25 +65,45 @@ bechdel %>%
 nrow(bechdel)
 
 # When was the oldest film in the dataset made?
+bechdel %>%
+  summarize(min(year))
 
 # When was the most recent film in the dataset made?
+bechdel %>%
+  summarize(max(year))
 
 # What is the median film budget in 2013 dollars?
+bechdel %>% 
+  summarize(median(budget_2013))
 
 # What films had budgets that exceeded 300 million in 2013 dollars?
 # (Just show the films and budgets, not all variables)
+bechdel %>%
+  select(title, budget_2013) %>%
+  filter(budget_2013 > 300000000)
 
 # What films were made in 1971?
 # (Just show the films and year, not all variables)
+bechdel %>%
+  select(title, year) %>%
+  filter(year == 1971)
 
 # What were the budget_mil and intgross_mil values for "Titanic"?
 # (Just show the budget_mil and intgross_mil values)
-
+bechdel %>%
+  filter(title == "Titanic") %>%
+  select(budget_mil, intgross_mil)
 ```
 
 ## Exercise 3
 
 ``` {r}
+bechdel %>% 
+  group_by(clean_test) %>% 
+  summarize(count = n())
+
+ggplot(bechdel, aes(x = clean_test)) + 
+  geom_histogram(color = "white", stat="count")
 ```
 
 
@@ -93,5 +113,43 @@ nrow(bechdel)
 
 ## Exercise 4
 
+The graph below presents the distribution of total international gross (in millions) for movies from 1970-2013 (adjusted to 2013 dollars where necessary). 
+
+The vast majority of movies make less than 200 million dollars, but there are movies that made in excess of $1B. 
 ``` {r}
+ggplot(bechdel, aes(x = intgross_mil)) +
+  geom_histogram(color = "white", binwidth = 25) + 
+  xlim(-50, 1250)
 ```
+
+``` {r}
+bechdel %>%
+  summarize(mean(intgross_mil, na.rm=TRUE), median(intgross_mil, na.rm=TRUE))
+```
+
+The median is much lower than the mean because there is a long and short right tail which contributes heavily to the median, and barely at all to the median.
+
+``` {r}
+bechdel %>%
+  summarize(sd(intgross_mil, na.rm=TRUE), sd(budget, na.rm=TRUE)/1000000)
+```
+The budget is relatively tightly grouped, whereas the gross is highly variable. Therefore it is a risky venture to create a high budget movie, because the chance of payout can be slim.
+
+
+# Exercise 5
+
+$\texttt{intgross_mil}$ is the response variable to $\texttt{budget}$.
+
+```{r}
+bechdel %>%
+  ggplot(aes(y = intgross_mil, x = budget/1e6)) + 
+  geom_point() +                         # <<< plot
+  geom_smooth(method = "lm", se = FALSE) # <<< trend
+```
+
+
+As seen in the plot above, there is an (unsuprisingly) positive relationship between budget and international gross, thought the underestimates of the model tend to be greater than the overestimates.
+
+# Exercise 6
+
+
