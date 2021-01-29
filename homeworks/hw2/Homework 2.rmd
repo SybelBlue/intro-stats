@@ -23,7 +23,7 @@ data("bechdel")
 
 
 
-## EXERCISE 1
+# Exercise 1
 
 ## Part a
 ``` {r process-bechdel}
@@ -58,7 +58,7 @@ bechdel %>%
 \
 
 
-## EXERCISE 2
+# Exercise 2
 
 ``` {r}
 # How many films are in the dataset?
@@ -95,7 +95,7 @@ bechdel %>%
   select(budget_mil, intgross_mil)
 ```
 
-## Exercise 3
+# Exercise 3
 
 ``` {r}
 bechdel %>% 
@@ -111,7 +111,7 @@ ggplot(bechdel, aes(x = clean_test)) +
 \
 
 
-## Exercise 4
+# Exercise 4
 
 The graph below presents the distribution of total international gross (in millions) for movies from 1970-2013 (adjusted to 2013 dollars where necessary). 
 
@@ -142,7 +142,7 @@ $\texttt{intgross_mil}$ is the response variable to $\texttt{budget}$.
 
 ```{r}
 bechdel %>%
-  ggplot(aes(y = intgross_mil, x = budget/1e6)) + 
+  ggplot(aes(y = intgross_mil, x = budget_mil)) + 
   geom_point() +                         # <<< plot
   geom_smooth(method = "lm", se = FALSE) # <<< trend
 ```
@@ -152,4 +152,57 @@ As seen in the plot above, there is an (unsuprisingly) positive relationship bet
 
 # Exercise 6
 
+``` {r}
+summary(movie_model <- lm(intgross_mil ~ budget_mil, data = bechdel))$coefficients
+```
 
+The regression trendline:
+\[\texttt{intgross_mil} = 11.95 + 3.07~ \texttt{budget_mil}\]
+Roughly, every million dollars put into the budget of the movie increases the international gross by three million dollars (or return on a \$1M investment is twofold).
+
+The intercept is not totally intuitive as a movie with budget of \$0 would unlikely have a \$12M gross, it makes more sense to say that million-dollar budget movies tend to gross 15M.
+
+# Exercise 7
+
+\[\texttt{budget_mil}_{Titanic} = 200\]
+\[\texttt{intgross_mil} = 11.95 + 3.07~ \texttt{budget_mil} = 625.95\]
+
+``` {r}
+predict(movie_model, newdata = data.frame(budget_mil = 200))
+```
+
+\[\texttt{intgross_mil}_{actual}=2185.672\]
+\[\textbf r = actual - predicted = 2185.672 - 626.572 = 1559.1\]
+
+The model *grossly* underestimated the gross.
+
+# Exercise 8
+
+``` {r}
+ggplot(bechdel, aes(x = intgross_mil, color = clean_test)) +
+  geom_histogram(color = "white", binwidth = 50) + 
+  facet_wrap(~ clean_test) +
+  xlim(-50, 1250)
+```
+
+
+``` {r}
+bechdel %>%
+  group_by(clean_test) %>%
+  summarize(mean(intgross_mil, na.rm=TRUE), sd(intgross_mil, na.rm=TRUE))
+```
+
+# Exercise 9
+
+``` {r}
+bechdel <- bechdel %>% 
+  mutate(clean_test = factor(as.character(clean_test)))
+movie_model_2 <- lm(intgross_mil ~ clean_test, data = bechdel)
+summary(movie_model_2)$coefficients
+```
+
+The baseline for $\texttt{clean_test}$ is $\texttt{dubious}$.
+
+$\texttt{dubious}$ movies tend to gross 169 million. $\texttt{men}$ movies tend to make 23M less than $\texttt{dubious}$ ones. 
+
+The $\texttt{notalk}$ movies (in which women are present on screen but do not speak) have the highest average gross of 175M. The $\texttt{ok}$ movies (which pass the Bechdel test) have the lowest average gross of 132.7M.
