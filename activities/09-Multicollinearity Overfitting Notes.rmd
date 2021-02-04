@@ -1,0 +1,372 @@
+# But wait: Multicollinearity & Overfitting
+
+NOTE: The exercise numbering here builds upon the previous activity.
+
+
+
+\
+\
+
+
+
+
+**Goals**    
+
+Multivariate models are great!  We've seen that adding more predictors to a model increases R-squared (the strength of the model in explaining the response variable) and allows us to control for important covariates. BUT. We must also consider more nuances and limitations to indiscriminately adding more predictors to our model.   
+
+
+\
+\
+\
+\
+
+
+
+## Getting started
+
+Load the following data on penguins!
+
+```{r}
+# Load data
+library(ggplot2)
+library(dplyr)
+library(palmerpenguins)
+library(magrittr)
+data(penguins)
+```
+
+(Art by @allison_horst)
+
+![](https://allisonhorst.github.io/palmerpenguins/reference/figures/lter_penguins.png)
+
+
+You can find a **codebook** for these data by typing `?penguins` **in your console (not Rmd)**. Our goal throughout will be to build a model of bill lengths (in mm):
+
+
+![](https://allisonhorst.github.io/palmerpenguins/reference/figures/culmen_depth.png)
+
+
+
+\
+\
+\
+\
+
+
+## Exercises
+
+
+
+\
+\
+
+
+NOTES: 
+
+- In the exercises below, you'll be asked to check in with your gut before checking your results. This is an important step in the learning process. Though you won't be graded (or judged!) on whether or not your gut was correct, make sure to actually write something.
+- Be sure to provide supporting code (what you type) and output (what you see) for relevant answers (eg: those that ask you to calculate R^2^).
+
+
+
+
+\
+\
+
+
+
+### Exercise 0: Hello!
+
+What has been your favorite class at Mac?
+
+
+
+
+\
+\
+
+
+
+### Exercise 7: Getting started
+
+a. The `flipper_length_mm` variable currently measures flipper length in mm. Create a *new* variable named `flipper_length_cm` which measures flipper length in cm. Store this inside the `penguins` data. Hints:    
+    - Make sure you've defined the variable correctly before storing.
+    - There are 10mm in a cm.    
+``` {r}
+penguins %<>% mutate(flipper_length_cm = flipper_length_mm / 10)
+```
+    
+b. Run the code chunk below to build a bunch of models that you'll be exploring in the exercises:     
+```{r}
+penguin_model_1 <- lm(bill_length_mm ~ flipper_length_mm, penguins)
+penguin_model_2 <- lm(bill_length_mm ~ flipper_length_cm, penguins)
+penguin_model_3 <- lm(bill_length_mm ~ flipper_length_mm + flipper_length_cm, penguins)
+penguin_model_4 <- lm(bill_length_mm ~ body_mass_g, penguins)
+penguin_model_5 <- lm(bill_length_mm ~ flipper_length_mm + body_mass_g, penguins)
+```
+    
+
+\
+\
+
+
+### Exercise 8: Modeling bill length by flipper length    
+
+What can a penguin's flipper (arm) length tell us about their bill length? To answer this question, we'll consider 3 of our models:    
+    
+model              predictors
+------------------ ---------------------------
+`penguin_model_1`  `flipper_length_mm`
+`penguin_model_2`  `flipper_length_cm`
+`penguin_model_3`  `flipper_length_mm + flipper_length_cm`
+    
+    
+a. Create and summarize two separate plots: `bill_length_mm` vs `flipper_length_mm`; and `bill_length_mm` vs `flipper_length_cm`.
+
+``` {r}
+point_and_line <- function(x){ x +
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE)}
+
+penguins %>% 
+  ggplot(aes(x = bill_length_mm, y = flipper_length_mm)) %>% 
+  point_and_line
+
+summary(penguin_model_1)$coefficients
+
+penguins %>% 
+  ggplot(aes(x = bill_length_mm, y = flipper_length_cm)) %>% 
+  point_and_line
+
+summary(penguin_model_2)$coefficients
+```
+
+b. *Before* examining the model summaries, ask your gut:    
+    - Do you think the `penguin_model_2` R-squared will be less than, equal to, or more than that of `penguin_model_1`?
+    - Similarly, how do you think the `penguin_model_3` R-squared will compare to that of `penguin_model_1`?
+
+All three R-Squared are the same because they all reflect the same correlation. Constant multiples of the data doesn't change the fit of the line.
+
+c. Check your gut: Report the R-squared values for the three penguin models and summarize how these compare.
+
+d. Explain why your observation in part c makes sense. Support your reasoning with a plot of the 2 predictors: `flipper_length_mm` vs `flipper_length_cm`.
+
+``` {r}
+penguins %>%
+  ggplot(aes(x = flipper_length_mm, y = flipper_length_cm)) %>%
+  point_and_line
+```
+
+e. *Challenge:* In `summary(penguin_model_3)`, the `flipper_length_cm` coefficient is `NA`. Explain why this makes sense. HINT: Thinking about yesterday's activity, why wouldn't it make sense to interpret this coefficient? BONUS: For those of you that have taken MATH 236, this has to do with matrices that are not of full rank!
+    
+Because the data in cm is a scaled duplicate of mm, that data contributes nothing to the model, so a coefficient would be not applicable in this context.
+
+\
+\
+
+
+
+
+### Exercise 9: Incorporating `body_mass_g`   
+
+In this exercise you'll consider 3 models of `bill_length_mm`:
+    
+model              predictors
+------------------ ---------------------------
+`penguin_model_1`  `flipper_length_mm`
+`penguin_model_4`  `body_mass_g`
+`penguin_model_5`  `flipper_length_mm + body_mass_g`
+    
+a. Which is the better predictor of `bill_length_mm`: `flipper_length_mm` or `body_mass_g`? Provide some numerical evidence.
+
+``` {r}
+summary(penguin_model_4)$r.squared
+```
+
+Flipper length seems to be a  better predictor of bill length than body mass because the r-squared of model 1 is higher than model 4.
+
+b. `penguin_model_5` incorporates both `flipper_length_mm` and `body_mass_g` as predictors. *Before* examining a model summary, ask your gut: Will the `penguin_model_5` R-squared be close to 0.35, close to 0.43, or greater than 0.6?
+
+``` {r}
+summary(penguin_model_5)$r.squared
+```
+
+This is only slightly better than model 4.
+
+c. Check your intuition. Report the `penguin_model_5` R-squared and summarize how this compares to that of `penguin_model_1` and `penguin_model_4`.
+
+```{r}
+penguins %>%
+  ggplot(aes(x = flipper_length_mm, y = body_mass_g)) +
+  geom_point()
+```
+
+d. Explain why your observation in part c makes sense. Support your reasoning with a plot of the 2 predictors: `flipper_length_mm` vs `body_mass_g`.
+
+Body mass and flipper length are highly correlated, so body mass doesn't add much more information to the model.  
+
+\
+\
+
+
+### Exercise 10: Redundancy & Multicollinearity
+
+
+The exercises above have illustrated special phenomena in multivariate modeling:    
+
+- two predictors are **redundant** if they contain the same exact information
+
+- two predictors are **multicollinear** if they are strongly associated (they contain very similar information) but are not completely redundant.
+
+a. Which penguin model had *redundant* predictors and which predictors were these?
+
+mm / cm
+
+b. Which penguin model had *multicollinear* predictors and which predictors were these?
+
+mm / mass
+
+c. In general, what happens to the R-squared value if we add a *redundant* predictor into a model: will it decrease, stay the same, increase by a small amount, or increase by a significant amount?
+
+remain the same
+
+d. Similarly, what happens to the R-squared value if we add a *multicollinear* predictor into a model?
+
+increase slightly
+
+\
+\
+
+
+
+### Exercise 11: Overfitting
+
+Not only does the strategy of adding more and more and more predictors complicate our models and have diminishing returns, it can give us silly results. Construct 2 models using a sample of 10 penguins (for illustration purposes only). NOTE: If you're using an older version of RStudio, you might get a different sample from others but the ideas are the same!        
+    
+```{r}
+# Take a sample of 10 penguins
+# We'll discuss this code later in the course!
+set.seed(155)
+penguins_small <- sample_n(penguins, size = 10) %>% 
+  mutate(flipper_length_mm = jitter(flipper_length_mm))
+
+# 2 models
+poly_mod_1 <- lm(bill_length_mm ~ flipper_length_mm, penguins_small)
+poly_mod_2 <- lm(bill_length_mm ~ poly(flipper_length_mm, 2), penguins_small)
+
+# 2 R-squared
+summary(poly_mod_1)$r.squared
+summary(poly_mod_2)$r.squared
+
+# Plot the 2 models
+ggplot(penguins_small, aes(y = bill_length_mm, x = flipper_length_mm)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE)
+
+ggplot(penguins_small, aes(y = bill_length_mm, x = flipper_length_mm)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", formula = y ~ poly(x, 2), se = FALSE)
+```
+
+\
+
+
+a. Adding a quadratic term to the model increased R-squared quite a bit. **BUT! I! WANT! MORE!** Adapt the code above to construct a model of `bill_length_mm` by `poly(flipper_length_mm, 9)` which has 9 polynomial predictors: `flipper_length_mm`, `flipper_length_mm^2`,..., `flipper_length_mm^9`.
+
+```{r}
+poly_mod_9 <- lm(bill_length_mm ~ poly(flipper_length_mm, 9), penguins_small)
+```
+
+
+b. Report the model's R-squared and construct a visualization of this model (show the model trend on top of the scatterplot of raw data).
+
+``` {r}
+summary(poly_mod_9)$r.squared
+
+ggplot(penguins_small, aes(y = bill_length_mm, x = flipper_length_mm)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", formula = y ~ poly(x, 9), se = FALSE)
+```
+
+c. OK. We've learned that it's always possible to get a perfect R-squared of 1. However, our example here demonstrates the drawbacks of **overfitting** a model to our sample data. Comment on the following:    
+    - How easy is it to interpret this model? Really hard.    
+    - Would you say that this model captures the general trend of the relationship between `bill_length_mm` and `flipper_length_mm`?    Probably not, weird dips and peaks.
+    - How well do you think this model would generalize to the penguins that were not included in the `penguins_small` sample? Poorly.
+
+
+d. Zooming out, explain some limitations of relying on R-squared to measure the strength / usefulness of a model.
+
+It is possible to maximize r-squared at the expensive of minimizing usefulness.
+
+
+e. Check out the image from the front page of the manual. Which plot pokes fun at overfitting? 
+
+![](https://www.explainxkcd.com/wiki/images/2/24/curve_fitting.png)
+
+
+    
+
+\
+\
+
+
+
+
+### Exercise 12: Model selection & curiosity    
+a. There are so many models we could build! For each possible research goal, indicate which predictors you'd include in your model.    
+    i: We want to understand the relationship between bill length and depth when controlling for penguin species.
+    ii: We want to be able to predict a penguin's bill length from its flipper length alone (because maybe penguins let us get closer to their arms than their nose?).
+    
+    
+b. Aren't you so curious about penguins? Identify one new question of interest, and explore this question using the data. It can be a simple question and answered in 1 line / 1 set of lines / 1 plot of R code, so long as it's not explored elsewhere in this activity.
+
+
+
+
+\
+\
+\
+\
+
+
+
+
+
+
+
+## Optional    
+
+
+### Optional 1: Beyond R^2
+
+We've seen that, unless a predictor is redundant with another, R-squared will increase. Even if that predictor is strongly multicollinear with another. Even if that predictor isn't a good predictor! Thus if we only look at R-squared we might get overly greedy. We can check our greedy impulses a few ways. We take a more in depth approach in STAT 253, but one quick alternative is reported right in our model `summary()` tables. **Adjusted R-squared** includes a *penalty* for incorporating more and more predictors. Mathematically:     
+    
+$$\text{Adj R^2} = R^2 - (1-R^2)\frac{\text{number of non-intercept coefficients}}{\text{sample size}} = R^2 - \text{ penalty}$$    
+
+Thus unlike R-squared, Adjusted R-squared can *decrease* when the information that a predictor contributes to a model isn't enough to offset the complexity it adds to that model. Consider two models:
+
+```{r}
+example_1 <- lm(bill_length_mm ~ species, penguins)
+example_2 <- lm(bill_length_mm ~ species + island, penguins)
+```
+
+
+a. Check out the summaries for the 2 example models. In general, how does a model's Adjusted R-squared compare to the R-squared? Is it greater, less than, or equal to the R-squared?
+
+
+b. How did the R-squared change from example model 1 to model 2? How did the Adjusted R-squared change?
+
+
+c. Explain what it is about `island` that resulted in a decreased Adjusted R-squared. Note: it's not necessarily the case that `island` is a bad predictor on its own!
+
+
+
+\
+\
+
+
+
+### Optional 2: Make some plots!
+
+Practice making some plots of the above models. And maybe even practice interpreting coefficients!
+    
+
