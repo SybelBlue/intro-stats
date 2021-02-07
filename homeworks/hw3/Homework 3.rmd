@@ -1,0 +1,543 @@
+---
+title: "Homework 3"
+author: Logan Caraco
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+``` {r message=FALSE}
+library(dplyr)
+library(ggplot2)
+
+library(magrittr)
+```
+
+\
+\
+
+
+## Getting started
+
+
+
+The `CPS_2018` data set contains wage data collected by the Current Population Survey (CPS) in 2018. Using these data, we can explore the relationship between annual wages and marital status (married or single) among 18-34 year olds. The original codebook is [here](https://cps.ipums.org/cps/resources/codebooks/cpsmar18.pdf). And the data reflect how the government collects data regarding employment.
+
+
+```{r}
+# Load the data
+CPS_2018 <- read.csv("https://www.macalester.edu/~ajohns24/data/CPS_2018.csv")
+  
+# Let's just look at 18 - 34 year olds and people that make under 250,000
+CPS_2018 <- CPS_2018 %>% 
+  filter(age >= 18, age <= 34) %>% 
+  filter(wage < 250000)
+```
+
+
+\
+
+
+
+We'll start with a small model of `wage` vs `marital` status:
+
+```{r}
+# Visualize the relationship
+ggplot(CPS_2018, aes(y = wage, x = marital)) + 
+  geom_boxplot()
+
+# Model the relationship
+CPS_model_1 <- lm(wage ~ marital, CPS_2018)
+summary(CPS_model_1)$coefficients
+```
+
+
+\
+\
+\
+\
+
+## Exercise 1: Controlling for age
+
+Let's start simple, by *controlling for* age (an imperfect measure of experience) in our model of wages by marital status. NOTE: Pause to think about the coefficients before answering the questions below.  
+    
+```{r}
+# Construct the model
+CPS_model_2 <- lm(wage ~ marital + age, CPS_2018)
+summary(CPS_model_2)$coefficients
+```
+
+a. Visualize this model by modifying the hint code in a new chunk. NOTE: Don't get distracted by the last line. This is just making sure that the `geom_smooth` matches our model assumptions.    
+```{r eval = FALSE}
+# HINT CODE: don't change
+ggplot(___, aes(y = ___, x = ___, color = ___)) + 
+  geom____(size = 0.1, alpha = 0.5) + 
+  geom_line(aes(y = CPS_model_2$fitted.values), size = 1.25)
+```    
+
+```{r}
+# Your solution
+ggplot(CPS_2018, aes(y = wage, x = age, color = marital)) + 
+  geom_jitter(size = 0.1, alpha = 0.5) + 
+  geom_line(aes(y = CPS_model_2$fitted.values), size = 1.25)
+```
+
+
+b. Suppose two workers are the *same age*, but one is married and the other is single. According to the model, by how much do we expect the single worker's wage to differ from the married worker's wage?
+
+About $\$7500$.
+
+c. With your answer to part b in mind, which of the options below is another way to interpret the `maritalsingle` coefficient?  On average...    
+    - Single workers make $7500 less than married workers.   
+    - **When controlling for ("holding constant") age, single workers make $7500 less than married workers.**
+
+    
+    
+\
+\
+
+
+
+## Exercise 2: Controlling for more covariates
+
+We've seen that among all workers, the wage gap of single vs married workers is \$17,052. We also saw that age accounts for some of this difference. Let's see what happens when we control for even more workforce covariates: model wages by marital status while controlling for `age` *and* years of `education`:   
+
+```{r}
+CPS_model_3 <- lm(wage ~ marital + age + education, CPS_2018)
+summary(CPS_model_3)$coefficients
+```    
+
+a. Challenge: Construct a single visualization of the relationship among these 4 variables. Hot tip: Start by visualizing wage vs age, and step by step incorporate information about the other predictors.
+
+``` {r}
+ggplot(CPS_2018, aes(x = age, y = wage, color = marital, size = education)) +
+  geom_point(alpha = 0.5) +
+  geom_line(aes(y = CPS_model_2$fitted.values), size = 1.25)
+```
+
+b. With so many variables, this is a tough model to visualize. If you *had* to draw it, how would the model trend appear: 1 point, 2 points, 2 lines, 1 plane, or 2 planes? Explain your rationale. Hot tip: pay attention to whether your predictors are quantitative or categorical.
+
+2 planes, one for each category.
+
+c. Even if we can't easily draw `CPS_model_3`, the coefficients contain the information we want! How can we interpret the education coefficient? On average...   
+    - Wages increase by $4285 for every extra year of education.   
+    - **When controlling for marital status and age, wages increase by $4285 for every extra year of education.**
+    - People with an education make $4285 more than those that don't.
+
+d. Which of the following is the best interpretation of the `maritalsingle` coefficient?  On average...   
+    - **When controlling for age and education, single workers make $6478 less than married workers.**
+    - Single workers make $6478 less than married workers.   
+
+
+\
+\
+
+        
+
+## Exercise 3: Even more covariates    
+
+Let's control for another workforce covariate: model wages by marital status while controlling for `age` (quantitative), years of `education` (quantitative), *and* the `industry` in which one works (categorical):    
+
+```{r}
+CPS_model_4 <- lm(wage ~ marital + age + education + industry, CPS_2018)
+summary(CPS_model_4)$coefficients
+```    
+    
+a. Challenge: Construct a single visualization of the relationship among these 5 variables. Hot tip: utilize a `facet_wrap(~ ___)` ala Activity 5.
+
+``` {r}
+ggplot(CPS_2018, aes(x = age, y = wage, color = marital, size = education)) +
+  geom_point(alpha = 0.5) +
+  geom_line(aes(y = CPS_model_2$fitted.values), size = 1.25) +
+  facet_wrap(~ industry)
+```
+
+b. If you *had* to draw it, how would the model trend appear: "z" points, "z" lines, or "z" planes? Specify "z" and explain your rationale.
+
+12 planes, because we have two (mostly) smooth predictors, a binary categorical predictor, and a six-value categorical predictor.
+
+c. When controlling for a worker's age, marital status, and education, which industry tends to have the highest wages?  The lowest?
+
+Construction, because it has the highest coefficient. Service is the lowest.
+
+d. Interpret the `maritalsingle` coefficient.   
+    
+Being single decreases wage after controlling for the other factors by nearly 6000 dollars.
+
+\
+\
+
+
+## Exercise 4: An even bigger model
+
+Consider two people with the same age, education, industry, typical number of work hours, and health status. However, one is single and one is married.   
+
+a. Construct and use a new model to summarize the typical difference in the wages for these two people. Store this model as `CPS_model_5`.   
+
+```{r}
+CPS_model_5 <- lm(wage ~ marital + age + education + industry + hours + health, CPS_2018)
+summary(CPS_model_5)$coefficients
+```    
+    
+b. After controlling for all of these workforce covariates, do you still find the remaining wage gap for single vs married people to be meaningfully "large"?  Can you think of any remaining factors that might explain part of this remaining gap?  Or do you think we've found evidence of inequitable wage practices for single vs married workers?    
+
+Nearly 5000 is still a meaningful amount change from baseline. There are few other categories present that are as strong. There are only two other categories, sex, disability and citizenship remaining, and they may be strongly linked to marriage which would account for its effect. Location is not a variable, and may also have an effect.
+
+\
+\
+
+
+
+## Exercise 5: Model comparison & selection
+
+Take two workers, one of which is married and the other of which is single. The models above provided the following insights into the typical difference in wages for these two groups:    
+    
+Model           Assume the two people have the same...   Wage difference    R^2^
+--------------- --------------------------------------- ----------------- -------
+`CPS_model_1`   NA                                               -$17,052   0.067
+`CPS_model_2`   age                                               -$7,500   0.157
+`CPS_model_3`   age, education                                    -$6,478   0.257
+`CPS_model_4`   age, education, industry                          -$5,893   0.280
+`CPS_model_5`   age, education, industry, hours, health           -$4,993   0.341
+
+a. Though this won't always be the case in every analysis, notice that the `marital` coefficient got closer and closer to 0 as we included more covariates in our model. Explain the significance of this phenomenon in the context of our analysis - what does it *mean*?
+
+It means that marital status is correlated to these covariates, ie that adding the covariates as predictors implied a marital result, diminishing the predictive value of marital status to the model.
+
+b. We've built several models here -- and there are dozens more that we could build but haven't. Amongst so many options, it's important to anchor our analysis and model building in our research goals. With respect to each possible goal below, explain which of our 5 models would be best.    
+    i. Our goal is to maximize our understanding of why wages vary from person to person. *Maximize the number of variables to find the strongest predictor.*
+    ii. Our goal is to understand the relationship between wages and marital status, ignoring all other possible factors in wages. *Maximize the number of variables to find the true weight of marital status.*
+    iii. Our goal is to understand the relationship between wages and marital status while controlling for a person's age and education. *Use only wages, marital status, age and education as predictors.*
+    iv. Our goal is to maximize our understanding of why wages vary from person to person while keeping our model as simple as possible. *Use health, marital status, and industry, as they have the largest effect in the biggest model.*
+
+c. Consider goal iv. Explain why you think *simplicity* can be a good model feature.
+
+Simplicity means that less data needs to be collected for higher confidence. Simpliciy makes the model easier to interpret.
+    
+
+\
+\
+
+
+
+
+## Exercise 6: Data drill + curiosity
+
+a. We took a very narrow look at the wage data set. What other curiosities do you have about these data? Identify one new question of interest, and explore this question using the data. It can be a simple question and answered in 1 line / 1 set of lines of R code, so long as it's not explored elsewhere in this activity.
+
+I'm curious about the wage breakdown in different industries at different ages regarless of marriage or education.
+``` {r}
+CPS_model_4 <- lm(wage ~ age + industry, CPS_2018)
+summary(CPS_model_4)$coefficients
+```
+
+b. Use `dplyr` tools to complete the data drill below. (There are some structural hints in the online manual version!)
+```{r}
+# Load and use the complete CPS_2018 data
+CPS_2018 <- read.csv("https://www.macalester.edu/~ajohns24/data/CPS_2018.csv")
+
+# What are the mean and median wage?
+CPS_2018 %>%
+  summarize(mean(wage), median(wage))
+
+# What is the median wage in each industry?
+CPS_2018 %>%
+  group_by(industry) %>%
+  summarize(mean(wage), median(wage))
+
+# How many workers fall into each health group?
+CPS_2018 %>%
+  group_by(health) %>%
+  count
+
+# Obtain a dataset of workers aged 18 to 22 that are in good health
+# Show just the first 6 rows
+# Hint: <= is "less than or equal to"
+CPS_2018 %>%
+  filter(17 < age, age < 23) %>%
+  head(6)
+
+# In one set of lines, calculate the median age (in years) amongst workers in excellent health
+# See online manual for structural hint
+CPS_2018 %>%
+  filter(health == "excellent") %>%
+  summarize(median(age))
+
+# In one set of lines, calculate the median age (in MONTHS) amongst workers in excellent health
+# See online manual for structural hint
+CPS_2018 %>%
+  filter(health == "excellent") %>%
+  summarize(median(age * 12))
+```
+
+
+\
+\
+\
+\
+
+
+
+```{r}
+# Load data
+library(palmerpenguins)
+data(penguins)
+```
+
+(Art by @allison_horst)
+
+![](https://allisonhorst.github.io/palmerpenguins/reference/figures/lter_penguins.png)
+
+
+## Exercise 7: Getting started
+
+a. The `flipper_length_mm` variable currently measures flipper length in mm. Create a *new* variable named `flipper_length_cm` which measures flipper length in cm. Store this inside the `penguins` data. Hints:    
+    - Make sure you've defined the variable correctly before storing.
+    - There are 10mm in a cm.    
+``` {r}
+penguins %<>% mutate(flipper_length_cm = flipper_length_mm / 10)
+```
+    
+b. Run the code chunk below to build a bunch of models that you'll be exploring in the exercises:     
+```{r}
+penguin_model_1 <- lm(bill_length_mm ~ flipper_length_mm, penguins)
+penguin_model_2 <- lm(bill_length_mm ~ flipper_length_cm, penguins)
+penguin_model_3 <- lm(bill_length_mm ~ flipper_length_mm + flipper_length_cm, penguins)
+penguin_model_4 <- lm(bill_length_mm ~ body_mass_g, penguins)
+penguin_model_5 <- lm(bill_length_mm ~ flipper_length_mm + body_mass_g, penguins)
+```
+    
+
+\
+\
+
+
+## Exercise 8: Modeling bill length by flipper length    
+
+What can a penguin's flipper (arm) length tell us about their bill length? To answer this question, we'll consider 3 of our models:    
+    
+model              predictors
+------------------ ---------------------------
+`penguin_model_1`  `flipper_length_mm`
+`penguin_model_2`  `flipper_length_cm`
+`penguin_model_3`  `flipper_length_mm + flipper_length_cm`
+    
+    
+a. Create and summarize two separate plots: `bill_length_mm` vs `flipper_length_mm`; and `bill_length_mm` vs `flipper_length_cm`.
+
+``` {r}
+point_and_line <- function(x){ x +
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE)}
+
+penguins %>% 
+  ggplot(aes(x = bill_length_mm, y = flipper_length_mm)) %>% 
+  point_and_line
+
+summary(penguin_model_1)$coefficients
+
+penguins %>% 
+  ggplot(aes(x = bill_length_mm, y = flipper_length_cm)) %>% 
+  point_and_line
+
+summary(penguin_model_2)$coefficients
+```
+
+b. *Before* examining the model summaries, ask your gut:    
+    - Do you think the `penguin_model_2` R-squared will be less than, equal to, or more than that of `penguin_model_1`?
+    - Similarly, how do you think the `penguin_model_3` R-squared will compare to that of `penguin_model_1`?
+
+All three R-Squared are the same because they all reflect the same correlation. Constant multiples of the data doesn't change the fit of the line.
+
+c. Check your gut: Report the R-squared values for the three penguin models and summarize how these compare.
+
+All the same!
+
+``` {r}
+summary(penguin_model_1)$r.squared
+summary(penguin_model_2)$r.squared
+summary(penguin_model_3)$r.squared
+```
+
+d. Explain why your observation in part c makes sense. Support your reasoning with a plot of the 2 predictors: `flipper_length_mm` vs `flipper_length_cm`.
+
+The variables contribute the same information, so they have the same fit, and adding them both as predictors doesn't actually add information for the model to use as a predictor.
+
+``` {r}
+penguins %>%
+  ggplot(aes(x = flipper_length_mm, y = flipper_length_cm)) %>%
+  point_and_line
+```
+
+e. *Challenge:* In `summary(penguin_model_3)`, the `flipper_length_cm` coefficient is `NA`. Explain why this makes sense. HINT: Thinking about yesterday's activity, why wouldn't it make sense to interpret this coefficient? BONUS: For those of you that have taken MATH 236, this has to do with matrices that are not of full rank!
+    
+Because the data in cm is a scaled duplicate of mm, that data contributes nothing to the model, so a coefficient would be not applicable in this context.
+
+\
+\
+
+## Exercise 9: Incorporating `body_mass_g`   
+
+In this exercise you'll consider 3 models of `bill_length_mm`:
+    
+model              predictors
+------------------ ---------------------------
+`penguin_model_1`  `flipper_length_mm`
+`penguin_model_4`  `body_mass_g`
+`penguin_model_5`  `flipper_length_mm + body_mass_g`
+    
+a. Which is the better predictor of `bill_length_mm`: `flipper_length_mm` or `body_mass_g`? Provide some numerical evidence.
+
+``` {r}
+summary(penguin_model_1)$r.squared
+summary(penguin_model_4)$r.squared
+```
+
+Flipper length seems to be a  better predictor of bill length than body mass because the r-squared of model 1 is higher than model 4.
+
+b. `penguin_model_5` incorporates both `flipper_length_mm` and `body_mass_g` as predictors. *Before* examining a model summary, ask your gut: Will the `penguin_model_5` R-squared be close to 0.35, close to 0.43, or greater than 0.6?
+
+``` {r}
+summary(penguin_model_5)$r.squared
+```
+
+This is only slightly better than model 4.
+
+c. Check your intuition. Report the `penguin_model_5` R-squared and summarize how this compares to that of `penguin_model_1` and `penguin_model_4`.
+
+```{r}
+penguins %>%
+  ggplot(aes(x = flipper_length_mm, y = body_mass_g)) +
+  geom_point()
+```
+
+d. Explain why your observation in part c makes sense. Support your reasoning with a plot of the 2 predictors: `flipper_length_mm` vs `body_mass_g`.
+
+Body mass and flipper length are highly correlated, so body mass doesn't add much more information to the model.  
+
+\
+\
+
+
+## Exercise 10: Redundancy & Multicollinearity
+
+
+The exercises above have illustrated special phenomena in multivariate modeling:    
+
+- two predictors are **redundant** if they contain the same exact information
+
+- two predictors are **multicollinear** if they are strongly associated (they contain very similar information) but are not completely redundant.
+
+a. Which penguin model had *redundant* predictors and which predictors were these?
+
+Model 3: mm / cm
+
+b. Which penguin model had *multicollinear* predictors and which predictors were these?
+
+Model 5: mm / mass
+
+c. In general, what happens to the R-squared value if we add a *redundant* predictor into a model: will it decrease, stay the same, increase by a small amount, or increase by a significant amount?
+
+Remain the same.
+
+d. Similarly, what happens to the R-squared value if we add a *multicollinear* predictor into a model?
+
+Increase slightly.
+
+\
+\
+
+
+
+## Exercise 11: Overfitting
+
+Not only does the strategy of adding more and more and more predictors complicate our models and have diminishing returns, it can give us silly results. Construct 2 models using a sample of 10 penguins (for illustration purposes only). NOTE: If you're using an older version of RStudio, you might get a different sample from others but the ideas are the same!        
+    
+```{r}
+# Take a sample of 10 penguins
+# We'll discuss this code later in the course!
+set.seed(155)
+penguins_small <- sample_n(penguins, size = 10) %>% 
+  mutate(flipper_length_mm = jitter(flipper_length_mm))
+
+# 2 models
+poly_mod_1 <- lm(bill_length_mm ~ flipper_length_mm, penguins_small)
+poly_mod_2 <- lm(bill_length_mm ~ poly(flipper_length_mm, 2), penguins_small)
+
+# 2 R-squared
+summary(poly_mod_1)$r.squared
+summary(poly_mod_2)$r.squared
+
+# Plot the 2 models
+ggplot(penguins_small, aes(y = bill_length_mm, x = flipper_length_mm)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE)
+
+ggplot(penguins_small, aes(y = bill_length_mm, x = flipper_length_mm)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", formula = y ~ poly(x, 2), se = FALSE)
+```
+
+\
+
+
+a. Adding a quadratic term to the model increased R-squared quite a bit. **BUT! I! WANT! MORE!** Adapt the code above to construct a model of `bill_length_mm` by `poly(flipper_length_mm, 9)` which has 9 polynomial predictors: `flipper_length_mm`, `flipper_length_mm^2`,..., `flipper_length_mm^9`.
+
+```{r}
+poly_mod_9 <- lm(bill_length_mm ~ poly(flipper_length_mm, 9), penguins_small)
+```
+
+
+b. Report the model's R-squared and construct a visualization of this model (show the model trend on top of the scatterplot of raw data).
+
+``` {r}
+summary(poly_mod_9)$r.squared
+
+ggplot(penguins_small, aes(y = bill_length_mm, x = flipper_length_mm)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", formula = y ~ poly(x, 9), se = FALSE)
+```
+
+c. OK. We've learned that it's always possible to get a perfect R-squared of 1. However, our example here demonstrates the drawbacks of **overfitting** a model to our sample data. Comment on the following:    
+    - How easy is it to interpret this model? *Really hard.*
+    - Would you say that this model captures the general trend of the relationship between `bill_length_mm` and `flipper_length_mm`? *Probably not, there are weird dips and peaks.*
+    - How well do you think this model would generalize to the penguins that were not included in the `penguins_small` sample? *Poorly. nontics tend to get big fast away from their inversion points.*
+
+
+d. Zooming out, explain some limitations of relying on R-squared to measure the strength / usefulness of a model.
+
+It is possible to maximize r-squared at the expensive of minimizing usefulness.
+
+
+e. Check out the image from the front page of the manual. Which plot pokes fun at overfitting? 
+
+![](https://www.explainxkcd.com/wiki/images/2/24/curve_fitting.png)
+
+The panel for "Connecting Lines" ("I clicked 'smooth lines' in Excel").
+    
+
+\
+\
+
+
+
+
+## Exercise 12: Model selection & curiosity    
+a. There are so many models we could build! For each possible research goal, indicate which predictors you'd include in your model.    
+    i: We want to understand the relationship between bill length and depth when controlling for penguin species. 
+    *I'd include mass and bill depth.*
+    ii: We want to be able to predict a penguin's bill length from its flipper length alone (because maybe penguins let us get closer to their arms than their nose?).
+    *Flipper length only...*
+    
+    
+b. Aren't you so curious about penguins? Identify one new question of interest, and explore this question using the data. It can be a simple question and answered in 1 line / 1 set of lines / 1 plot of R code, so long as it's not explored elsewhere in this activity.
+
+It's easier to weigh a penguin than measure one.
+
+```{r}
+ggplot(penguins_small, aes(y = flipper_length_mm, x = body_mass_g)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", formula = y ~ poly(x, 2), se = FALSE)
+```
+

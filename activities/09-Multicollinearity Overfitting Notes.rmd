@@ -27,11 +27,14 @@ Multivariate models are great!  We've seen that adding more predictors to a mode
 Load the following data on penguins!
 
 ```{r}
-# Load data
 library(ggplot2)
 library(dplyr)
-library(palmerpenguins)
 library(magrittr)
+```
+
+```{r}
+# Load data
+library(palmerpenguins)
 data(penguins)
 ```
 
