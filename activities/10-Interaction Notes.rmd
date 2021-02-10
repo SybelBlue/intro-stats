@@ -1,0 +1,413 @@
+# Interaction: when models aren't parallel
+
+\
+
+**Warm-up question**    
+
+What do you think might be wrong about the model below?
+
+```{r}
+# Load packages and data
+library(ggplot2)
+library(dplyr)
+CPS_2018 <- read.csv("https://www.macalester.edu/~ajohns24/data/CPS_2018.csv")
+
+# Model and plot
+# NOTE: the use of geom_line forces the lines to match our model
+wage_model <- lm(wage ~ education + industry, CPS_2018)
+ggplot(CPS_2018, aes(y = wage, x = education, color = industry)) + 
+    geom_line(aes(y = wage_model$fitted.values))
+
+```
+
+
+
+
+
+\
+\
+\
+\
+
+
+
+**Goals**
+
+Let y be a response variable and x1 and x2 be two predictors of y. Our previous multivariate models have assumed that the relationship between y and x1 is independent of / unrelated to x2. Today we'll expand upon this constraint by considering models that allow x1 and x2 to **interact**.
+
+
+\
+\
+\
+
+
+
+**Directions**
+
+- The exercises are split up into "synchronous" and "asynchronous" sections. You will not get through all of these in class today. Whatever you do not finish will be part of your asynchronous work tomorrow.
+- So that you can focus on some new concepts, most code is provided. So that you can apply this code in new settings, make sure to pause and check it out as you go.
+
+
+\
+\
+
+
+
+# Getting started
+
+**Politics glossary**    
+
+
+term         meaning
+------------ ----------------------------
+candidate    a person running for election
+incumbent    a candidate that is running for RE-election (eg: Trump)
+challenger   a candidate that is challenging an incumbent (eg: Biden)
+
+
+\
+\
+
+
+
+**The story**
+
+What role does campaign spending play in elections? Do candidates that spend more money tend to get more votes? What if we control for whether or not a candidate is an incumbent or a challenger? We'll examine these questions using data collected by Benoit and Marsh (2008) on the campaign spending of 464 candidates in the 2002 Irish Dail elections (Ireland's version of the U.S. House of Representatives). We'll focus on the following variables:
+
+\
+
+
+variable     meaning
+------------ --------------------------------------------------------------------------------
+`votes1st`   number of "1st preference" votes the candidate received
+`incumb`     `No` if the candidate was a challenger, `Yes` if the candidate was an incumbent
+`totalexp`   number of Euros spent by the candidate's campaign
+
+
+\
+\
+
+
+```{r}
+# Load packages & data
+library(ggplot2)
+library(dplyr)
+campaigns <- read.csv("http://www.macalester.edu/~ajohns24/data/CampaignSpending.csv") %>% 
+  select(wholename, district, votes1st, incumb, totalexp) %>% 
+  filter(!is.na(totalexp))
+```
+
+
+\
+\
+\
+
+
+# Exercises: synchronous
+
+
+\
+
+
+## Exercises 1: Votes vs incumbency & spending
+
+In what way is campaign spending associated with votes? To address this question, we'll examine the following visualization and model of `votes1st` by `incumb` and `totalexp`:    
+```{r}
+# Construct the model
+vote_model_1 <- lm(votes1st ~ incumb + totalexp, campaigns)
+
+# Summarize the model
+summary(vote_model_1)$coefficients
+
+# Plot the model
+ggplot(campaigns, aes(y = votes1st, x = totalexp, color = incumb)) + 
+  geom_point() +
+  geom_line(aes(y = vote_model_1$fitted.values), size = 1.5)
+```    
+  
+    
+a. Use the model `summary()` to specify the formulas of the trend lines for incumbents and challengers:    
+
+    challengers: votes1st = 1031.305 + 0.174 totalexp
+
+    incumbents:  votes1st = 2764.041 + 0.174 totalexp
+
+
+b. Notice that this assumes that the trend lines for incumbents and challengers have different intercepts, but the same slopes. What does this mean in the election context?    
+    - **Incumbents tend to earn more votes than challengers and enjoy the same return on campaign spending (ie. the rate of increase in votes with campaign spending is the same for incumbents and challengers).**
+    - Incumbents tend to earn more votes than challengers, but have a smaller return on spending (ie. the rate of increase in votes with campaign spending is greater for challengers than for incumbents).    
+
+
+
+\
+\
+
+
+
+## Exercises 2: Check your assumptions
+
+The raw relationship between `votes1st` vs `totalexp` and `incumb` is plotted below. The `vote_model_1` of this relationship above *forced* and *assumed* these trend lines to be parallel. It seems that `vote_model_1` didn't accurately capture the trend in the data:       
+
+```{r}
+ggplot(campaigns, aes(x = totalexp, y = votes1st, color = incumb)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE)
+```    
+
+The differing slopes of the lines above illustrate an **interaction** between the campaign spending & incumbency status predictors: the relationship between votes & spending differs for incumbents and challengers. Describe this interaction in words. *In what way* does the relationship between votes & spending differ for incumbents and challengers?
+
+There is less return on investment for incumbents.
+
+
+\
+\
+
+
+
+
+## Exercises 3: Incorporating an interaction term
+
+We can incorporate this interaction into our model. In RStudio, we type `totalexp * incumb` instead of `totalexp + incumb` in `lm()`:
+
+```{r}
+vote_model_3 <- lm(votes1st ~ totalexp * incumb, campaigns)
+summary(vote_model_3)$coefficients
+```
+
+The `totalexp:incumbYes` term in the `vote_model_3` summary is called an **interaction term**. Mathematically, it's the *product* of these two variables, `totalexp * incumbYes`. Thus the `vote_model_3` formula is
+
+`votes1st = 691 + 0.2097 totalexp + 4814 incumbYes - 0.1259 totalexp * incumbYes`
+
+Use this model to predict the number of votes received in the following scenarios. Revisit the plot to check whether your answers are reasonable.        
+
+```{r}
+# Predicted votes for a challenger that spends 10000 Euros    
+691 + 0.2097 * 10000 + 4814 * 0 - 0.1259 * 10000 * 0
+
+# Predicted votes for an incumbent that spends 10000 Euros    
+691 + 0.2097 * 10000 + 4814 * 1 - 0.1259 * 10000 * 1
+```
+    
+    
+\
+\
+
+
+
+
+
+## Exercises 4: Non-parallel trend lines
+
+The `vote_model_3` formula is represented by two non-parallel lines: one for incumbents and one for challengers. Use the model `summary()` to specify the formulas of the trend lines for incumbents and challengers:    
+        
+challengers: votes1st = 691 + 0.2097 totalexp
+
+incumbents:  votes1st = 5505 + 0.0838 totalexp
+   
+    
+\
+\
+
+
+
+
+## Exercises 5: Interpretations
+
+a. Interpret the `totalexp` coefficient of `0.2097` in a newspaper appropriate way. Reviewing the equations for the incumbent & challenger models will help.    
+
+For roughly every 5 euros, another vote can be gained for a challenger, whereas for an incumbent, every 12 euros will obtain another vote. 
+
+b. Interpret the interaction term `totalexp:incumbYes` coefficient of `-0.12587`. NOTE: As with any coefficient related to a categorical predictor, this indicates how the relationship between `votes1st` and `totalexp` *differs* by the `incumb` levels.    
+
+This is negative because being an incumbent decreases the coefficient.
+
+
+\
+\
+
+
+
+## Exercises 6: Reflection
+
+Review the definition of interaction below (looking at the knit html will be easier). What questions do you still have?
+    
+
+\
+\
+
+
+
+
+---
+
+**INTERACTION**    
+
+
+Consider modeling response variable $y$ by predictors $x_1$ and $x_2$.  IF the relationship between $y$ and $x_1$ *differs* depending upon the values / categories of $x_2$, then we say that the *predictors* $x_1$ and $x_2$ **interact**.  We can include this dynamic in our model using an **interaction term** $x_1*x_2$:    
+
+
+$$y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \beta_3 x_1*x_2$$    
+
+
+**EXTRA:**  We can *see* how the relationship between $y$ and $x_1$ *differs* depending upon the values / categories of $x_2$ by rearranging the terms:
+
+
+$$y = (\beta_0 + \beta_2x_2) + (\beta_1 + \beta_3 x_2)x_1 = a + b x_1$$    
+
+
+**NOTE**    
+
+If the relationship between $y$ and $x_1$ is **independent** of $x_2$, then $x_1$ and $x_2$ do not interact and we can use the model $y = \beta_0 + \beta_1x_1 + \beta_2x_2$.    
+
+---
+
+
+
+\
+\
+\
+\
+
+
+
+
+
+# Exercises: asynchronous
+
+\
+
+
+## Exercises 7: Wages
+
+The plot below illustrates the relationship between wage and education for different industries:    
+
+```{r}
+CPS_2018 <- read.csv("https://www.macalester.edu/~ajohns24/data/CPS_2018.csv")
+
+# Plot
+ggplot(CPS_2018, aes(y = wage, x = education, color = industry)) + 
+geom_smooth(method = "lm", se = FALSE)
+```
+
+To capture the different wage vs education relationships across industries (ie. the different slopes), we incorporate an **interaction** term between `education` and `industry`:
+
+```{r}
+cps_model_1 <- lm(wage ~ education * industry, CPS_2018)
+summary(cps_model_1)$coefficients
+```
+
+a. In a newspaper appropriate way, explain what it *means* for the education & industry predictors to interact. (The plot will help!)
+
+In some industries, amount of education can provide little to no increase in wages.
+
+b. In what industry is there the *largest* return on education, ie. the largest increase in wages as education increases?  Support your claim with two pieces of evidence:    
+    - numerical evidence (a model coefficient) from the model summary    
+    - evidence you observed in the graph above    
+
+Installation/production is the industry which is effected most by education (8616.31984).
+
+c. Similarly, in what industry is there the *smallest* return on education?  Provide numerical *and* graphical evidence.      
+
+Agriculture.
+
+
+\
+\
+
+
+## Exercises 8: Back to bikes
+
+Let's consider an example of an interaction between 2 *categorical* predictors. To this end, we'll utilize the bikeshare data. We previously investigated ridership patterns among *registered* riders. For example, we modeled the relationship between `rides` and `weekend` status. We'll now compare these patterns to those of *casual* riders using the new `user` variable which indicates whether a rider is `registered` or `casual`. Examine and summarize the plot below:
+    
+```{r}
+bikes <- read.csv("https://www.macalester.edu/~dshuman1/data/155/bike_share.csv")
+
+# Don't worry about this syntax!
+library(tidyr)
+new_bikes <- bikes %>% 
+  filter(year == 2011) %>% 
+  select(riders_casual, riders_registered, weekend, temp_actual) %>% 
+  pivot_longer(!c(weekend, temp_actual), names_to = "user", names_prefix = "riders_", values_to = "rides")
+
+ggplot(new_bikes, aes(fill = weekend, y = rides, x = user)) + 
+  geom_boxplot()
+```
+    
+Casual riders ride far more often on the weekends, whereas registered riders tend to ride more during the week. However, there tend to be vastly more registered riders on any given day than casual ones.
+
+\
+\
+
+
+## Exercises 9: modeling bikes: no interaction**    
+
+To begin, consider the model of `rides` by `weekend` and `user` which assumes that the `weekend` and `user` predictors do *not* interact.  What does the `weekendTRUE` coefficient assume which, upon reviewing the plot above, we can see is false?            
+
+```{r}
+bike_model_1 <- lm(rides ~ weekend + user, new_bikes)
+summary(bike_model_1)$coefficients
+```
+
+The slope for lines during weekdays and weekends are equal.
+
+\
+\
+
+
+## Exercises 10: modeling bikes: interaction
+
+To reflect the patterns observed in the boxplots, we can incorporate an interaction term between `weekend` and `user`:    
+
+```{r}
+bike_model_2 <- lm(rides ~ weekend * user, new_bikes)
+summary(bike_model_2)$coefficients
+```    
+    
+a. According to `bike_model_2`, which combination of `user` and `weekend` categories has the smallest number of predicted riders *and* what is the prediction?  (Make sure you can also see this in the boxplot.)    
+
+Casual weekday riders (493).
+
+b. Which combination of `user` and `weekend` categories has the largest number of predicted riders *and* what is the prediction?  (Make sure you can also see this in the boxplot.)   
+
+Registered weekday riders (2916).
+
+\
+\
+
+
+
+
+## Exercises 11: Another bikes example
+
+In their relationship with `rides`, `temp_actual` and `weekend` appear to interact. What are the appropriate *signs* on the coefficients (a, b, c, d) which represents this relationship and why? Note: you can always check your work by actually building the `lm()` model.    
+    
+`rides = -a + -b*weekendTRUE + c*temp_actual + d*weekendTRUE*temp_actual`
+
+```{r}
+bike_sub <- new_bikes %>% 
+  filter(user == "casual")
+
+ggplot(bike_sub, aes(x = temp_actual, y = rides, color = weekend)) + 
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+    
+\
+\
+
+
+
+## Exercises 12: Interactions between 2 quantitative predictors
+
+In homework, you'll see that in the model of `Price`, the `Mileage` and `Age` of a used car **interact**: the relationship between mileage and price differs depending upon the age of the car. Below, the yellow lines represent the relationship between price and mileage for 1 year old, 5 year old, and 10 year old used cars.    
+    
+![](https://www.macalester.edu/~ajohns24/images/car.png)
+
+What do you anticipate: In this model, what do you think the *signs* of the coefficients will be?    
+
+`Price = +a + -b*Age + -c*Mileage + +d*Age*Mileage`
+    
+    
+    
+
+

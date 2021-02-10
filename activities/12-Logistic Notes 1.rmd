@@ -1,0 +1,396 @@
+# Logistic regression: Part I
+
+\
+
+
+```{r message = FALSE, warning = FALSE}
+library(ggplot2)
+library(dplyr)
+```
+
+
+\
+
+
+
+# Getting started
+
+\
+
+
+
+**Where are we?**    
+
+We've been focusing on "Normal" linear regression models for **quantitative** response variables. But not all response variables are quantitative! We'll now explore logistic regression models for **binary categorical** response variables. Though the details of our models will change, the spirit and considerations are the same (eg: we still want to learn about y from predictors x and still need to be mindful of multicollinearity, overfitting, etc).
+
+
+
+\
+\
+\
+\
+
+
+**Warm-up exercise: Normal or logistic?**    
+
+For each scenario below, indicate whether Normal or logistic regression would be the appropriate modeling tool.
+
+- scenario 1: we want to model a person's commute time (y) by their distance to work (x).
+- scenario 2: we want to model a person's commute time (y) by whether or not they take public transit (x).
+- scenario 3: we want to model whether or not a person gets a speeding ticket (y) based on their driving speed (x).
+
+
+
+\
+\
+\
+\
+
+
+
+
+
+---
+
+**Logistic Regression**    
+
+
+Let $y$ be a binary categorical response variable:    
+
+$$y = 
+\begin{cases}
+1 & \; \text{ if event happens} \\
+0 & \; \text{ if event doesn't happen} \\
+\end{cases}$$    
+
+Further define
+
+$$\begin{split}
+p &= \text{ probability event happens} \\
+1-p &= \text{ probability event doesn't happen} \\
+\text{odds} & = \text{ odds event happens} = \frac{p}{1-p} \\
+\end{split}$$    
+
+
+Then a logistic regression model of $y$ by $x$ is
+$$\log(\text{odds}) = \beta_0 + \beta_1 x$$
+
+We can transform this to get (curved) models of odds and probability:
+
+$$\begin{split}
+\text{odds} & = e^{\beta_0 + \beta_1 x} \\
+p           & = \frac{\text{odds}}{\text{odds}+1} = \frac{e^{\beta_0 + \beta_1 x}}{e^{\beta_0 + \beta_1 x}+1} \\
+\end{split}$$
+
+
+\
+\
+
+
+
+**Coefficient interpretation**    
+
+$$\begin{split}    
+\beta_0 & = \text{ LOG(ODDS) when } x=0 \\
+e^{\beta_0} & = \text{ ODDS when } x=0 \\
+\beta_1 & = \text{ unit change in LOG(ODDS) per 1 unit increase in } x \\
+e^{\beta_1} & = \text{ multiplicative change in ODDS per 1 unit increase in } x \\
+\end{split}$$
+
+
+---
+
+
+
+
+
+
+\
+\
+\
+\
+
+
+
+
+
+
+# Exercises
+
+
+\
+
+
+**Directions**    
+
+There is a lot of new and specialized syntax today. Not even the professor has this syntax committed to memory. During class, you're encouraged to peak at but not get distracted by the syntax -- stay focused on the bigger picture concepts. After the activity / after class, go back and pick through the syntax.
+
+
+
+\
+\
+
+
+
+**The story**
+
+The `climbers_sub` data is sub-sample of the [Himalayan Database](https://www.himalayandatabase.com/) distributed through the [R for Data Science TidyTuesday project](https://github.com/rfordatascience/tidytuesday/tree/master/data/2020/2020-09-22). This dataset includes information on the results and conditions for various Himalayan climbing expeditions. Each row corresponds to a single member of a climbing expedition team:
+
+```{r}
+climbers_sub <- read.csv("https://www.macalester.edu/~ajohns24/data/climbers_sub.csv") %>% 
+  select(peak_name, success, age, oxygen_used, height_metres)
+
+head(climbers_sub)
+```
+
+Our goal will be to model whether or not a climber has `success` by their `age`. Since `success` is a binary categorical variable (a climber is either successful or they're not), we'll utilize **logistic regression**.  
+
+
+\
+
+
+
+
+
+
+## Exercise 1: Hello!
+
+Please check in with one another.
+
+
+\
+\
+
+
+
+## Exercise 2: Warm-up: probability vs odds vs log(odds)
+
+a. Let $p$ denote the probability of an event. Identify examples of events for which: $p=0$, $p=1$    
+b. There's a 0.9 probability that the instructor joins your breakout room in the next 15 minutes. Calculate the corresponding *odds* and *log(odds)* of this event.
+c. The log(odds) that your bus is late are -1. Calculate the corresponding *odds* and *probability* of this event.
+
+
+
+\
+\
+
+
+
+## Exercise 3: A quick peak at the data
+
+```{r}
+# How many climbers are in the data set?
+
+# Overall, how many climbers succeeded / didn't succeed? Hint: n()
+
+```
+
+
+\
+\
+
+
+
+## Exercise 4: Plotting success by age
+
+It's not often easy to visualize a relationship between a binary response y and a predictor x. But since we have a large data set and multiple (though sometimes not many) observations at each age, we can calculate the observed success rate at each age. Try out the plots below and summarize what you learn.
+    
+```{r}
+# Calculate success rate by age
+# And plot success rate by age
+success_by_age <- climbers_sub %>% 
+  group_by(age) %>% 
+  summarize(success_rate = mean(success))
+ggplot(success_by_age, aes(x = age, y = success_rate)) + 
+  geom_point()
+
+# Do the above in 1 set of lines!
+climbers_sub %>% 
+  group_by(age) %>% 
+  summarize(success_rate = mean(success)) %>% 
+  ggplot(aes(x = age, y = success_rate)) +
+    geom_point()
+
+# Split climbers into larger, more stable age brackets
+# (This is good when we don't have many / multiple observations at each x!)
+# Plot success rate by age bracket
+climbers_sub %>% 
+  mutate(age_bracket = cut(age, breaks = 20)) %>% 
+  group_by(age_bracket) %>% 
+  summarize(success_rate = mean(success)) %>% 
+  ggplot(aes(x = age_bracket, y = success_rate)) +
+    geom_point()
+```
+    
+    
+    
+
+\
+\
+
+
+
+
+
+## Exercise 5: Logistic regression in R
+
+To model the relationship between `success` and `age`, we can construct the **logistic regression model**. NOTE: For logistic regression we use `glm()` instead of `lm()` and use `family = "binomial"` to specify that our response variable is binary.
+    
+```{r}
+climbing_model_1 <- glm(success ~ age, climbers_sub, family = "binomial")
+summary(climbing_model_1)$coefficients
+```
+
+Convince yourself that the model formulas on the log(odds), odds, and probability scales are as follows:    
+
+log(odds of success) = 0.42569 - 0.02397age    
+odds of success = e^(0.42569 - 0.02397age)    
+probability of success = e^(0.42569 - 0.02397age) / (e^(0.42569 - 0.02397age) + 1)
+
+
+
+\
+\
+
+
+
+
+
+## Exercise 6: Plotting the model
+
+We now have the *same* model of success by age, but on 3 different scales. Construct and comment on the plots below -- what do they indicate about the relationship between climber success and age?
+    
+```{r}
+# Incorporate predictions on the probability, odds, & log-odds scales
+climbers_predictions <- climbers_sub %>% 
+  mutate(probability = climbing_model_1$fitted.values) %>% 
+  mutate(odds = probability / (1-probability)) %>% 
+  mutate(log_odds = log(odds))
+
+# Plot the model on 3 scales
+ggplot(climbers_predictions, aes(x = age, y = log_odds)) + 
+  geom_smooth(se = FALSE) 
+
+ggplot(climbers_predictions, aes(x = age, y = odds)) + 
+  geom_smooth(se = FALSE) 
+
+ggplot(climbers_predictions, aes(x = age, y = probability)) + 
+  geom_smooth(se = FALSE) 
+
+#...and zoom out to see broader (and impossible) age range
+ggplot(climbers_predictions, aes(x = age, y = as.numeric(success))) +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), se = FALSE, fullrange = TRUE) + 
+  labs(y = "probability") + 
+  lims(x = c(-200,200))
+```
+    
+    
+    
+
+\
+\
+
+
+
+
+
+## Exercise 7: Interpreting the plots    
+
+Compare the *shapes* of the models on these different scales.    
+a. Which model is linear?    
+b. Which model is s-shaped?    
+c. Which model is restricted between 0 and 1 on the y-axis?    
+d. Which model is curved and restricted to be above 0 (but not necessarily below 1) on the y-axis?    
+    
+
+
+
+\
+\
+
+
+
+## Exercise 8: Predictions
+
+Let's use the model to make predictions. Consider a 20 year old climber.    
+
+a. Predict the *log(odds)* that this climber will succeed.  HINT: use the log(odds) model.    
+b. Predict the *odds* that this climber will succeed. HINT: Either transform the log(odds) prediction or use the odds model.    
+c. Predict the *probability* that this climber will succeed. HINT: Either transform the odds prediction or use the probability model.
+
+
+\
+\
+
+
+## Exercise 9: Checking predictions
+
+a. On each of the 3 scales, are your predictions consistent with your model visualizations above?
+b. Check your predictions using the following picky syntax.    
+
+```{r}
+# Check the log-odds prediction
+predict(climbing_model_1, newdata = data.frame(age = 20))
+
+# Check the odds prediction
+exp(predict(climbing_model_1, newdata = data.frame(age = 20)))
+
+# Check the probability prediction
+predict(climbing_model_1, newdata = data.frame(age = 20), type = "response")
+```    
+    
+
+\
+\
+
+
+
+
+## Exercise 10: Interpreting Coefficients
+
+
+You'll learn more in tomorrow's video about interpreting logistic regression coefficients. Give it a quick try here.    
+
+a. Interpret the intercept coefficient on the log(odds) scale. NOTE: You can do this just as you did for "Normal" regression models, but remember that the response here is log(odds of success).    
+b. Interpret the intercept coefficient on the odds scale. HINT: `exp()`   
+c. Interpret the `age` coefficient on the log(odds) scale. NOTE: You can do this just as you did for "Normal" regression models, but remember that the response here is log(odds of success).    
+d. The log(odds) scale isn't very nice. We can convert this to the odds scale as follows. If the `age` coefficient on the log(odds) scale is **b**, then **e^b** is the MULTIPLICATIVE change in ODDS of success per 1 year increase in age.
+e. **EXTRA:** Try to *prove* the relationship used in part d.    
+        
+        
+
+ 
+
+
+
+\
+\
+\
+\
+
+
+
+
+# Optional extra exercises
+
+
+
+\
+\
+
+
+
+
+## Exercise 11: Another climbing model
+
+a. Construct a model of `success` by `oxygen_used`.    
+b. Predict the probability of success for a climber that uses oxygen and for a climber that doesn't use oxygen.
+c. Interpret the two model coefficients.
+    
+
+\
+\
+\
+\
+
+
