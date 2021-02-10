@@ -36,19 +36,17 @@ We've been focusing on "Normal" linear regression models for **quantitative** re
 For each scenario below, indicate whether Normal or logistic regression would be the appropriate modeling tool.
 
 - scenario 1: we want to model a person's commute time (y) by their distance to work (x).
+**normal**
 - scenario 2: we want to model a person's commute time (y) by whether or not they take public transit (x).
+**logistic**
 - scenario 3: we want to model whether or not a person gets a speeding ticket (y) based on their driving speed (x).
-
+**normal**
 
 
 \
 \
 \
 \
-
-
-
-
 
 ---
 
@@ -101,18 +99,10 @@ e^{\beta_1} & = \text{ multiplicative change in ODDS per 1 unit increase in } x 
 ---
 
 
-
-
-
-
 \
 \
 \
 \
-
-
-
-
 
 
 # Exercises
@@ -126,10 +116,8 @@ e^{\beta_1} & = \text{ multiplicative change in ODDS per 1 unit increase in } x 
 There is a lot of new and specialized syntax today. Not even the professor has this syntax committed to memory. During class, you're encouraged to peak at but not get distracted by the syntax -- stay focused on the bigger picture concepts. After the activity / after class, go back and pick through the syntax.
 
 
-
 \
 \
-
 
 
 **The story**
@@ -149,10 +137,6 @@ Our goal will be to model whether or not a climber has `success` by their `age`.
 \
 
 
-
-
-
-
 ## Exercise 1: Hello!
 
 Please check in with one another.
@@ -162,14 +146,21 @@ Please check in with one another.
 \
 
 
-
 ## Exercise 2: Warm-up: probability vs odds vs log(odds)
 
 a. Let $p$ denote the probability of an event. Identify examples of events for which: $p=0$, $p=1$    
+$$\begin{align} P(x \land \sim x) &= 0 & P(x \lor \sim x) = 1 \end{align}$$
 b. There's a 0.9 probability that the instructor joins your breakout room in the next 15 minutes. Calculate the corresponding *odds* and *log(odds)* of this event.
+$$\begin{align}
+odds_{instr} &= \frac{0.9}{1 - 0.9} = 9 \\
+\log(odds_{inst}) &= \log 9 = 2.19
+\end{align}$$
 c. The log(odds) that your bus is late are -1. Calculate the corresponding *odds* and *probability* of this event.
 
-
+$$\begin{align}
+odds_{bus} &= \exp(-1) = 0.3678 \\
+P(bus = late) &= \frac{0.3678}{1 - 0.3678} = 0.214
+\end{align}$$
 
 \
 \
@@ -180,9 +171,11 @@ c. The log(odds) that your bus is late are -1. Calculate the corresponding *odds
 
 ```{r}
 # How many climbers are in the data set?
-
+nrow(climbers_sub)
 # Overall, how many climbers succeeded / didn't succeed? Hint: n()
-
+climbers_sub %>%
+  group_by(success) %>%
+  count()
 ```
 
 
@@ -297,10 +290,10 @@ ggplot(climbers_predictions, aes(x = age, y = as.numeric(success))) +
 ## Exercise 7: Interpreting the plots    
 
 Compare the *shapes* of the models on these different scales.    
-a. Which model is linear?    
-b. Which model is s-shaped?    
-c. Which model is restricted between 0 and 1 on the y-axis?    
-d. Which model is curved and restricted to be above 0 (but not necessarily below 1) on the y-axis?    
+a. Which model is linear? $\log(odds) \sim age$
+b. Which model is s-shaped? $prob \sim age$   
+c. Which model is restricted between 0 and 1 on the y-axis? $\log(odds) \sim age$   
+d. Which model is curved and restricted to be above 0 (but not necessarily below 1) on the y-axis?  $odds \sim age$  
     
 
 
@@ -314,10 +307,18 @@ d. Which model is curved and restricted to be above 0 (but not necessarily below
 
 Let's use the model to make predictions. Consider a 20 year old climber.    
 
-a. Predict the *log(odds)* that this climber will succeed.  HINT: use the log(odds) model.    
+a. Predict the *log(odds)* that this climber will succeed.  HINT: use the log(odds) model.  
+``` {r}
+0.42569 - 0.02397 * 20
+```
 b. Predict the *odds* that this climber will succeed. HINT: Either transform the log(odds) prediction or use the odds model.    
+``` {r}
+exp(0.42569 - 0.02397 * 20)
+```
 c. Predict the *probability* that this climber will succeed. HINT: Either transform the odds prediction or use the probability model.
-
+``` {r}
+exp(0.42569 - 0.02397 * 20) / (1 + exp(0.42569 - 0.02397 * 20))
+```
 
 \
 \
@@ -352,14 +353,19 @@ predict(climbing_model_1, newdata = data.frame(age = 20), type = "response")
 You'll learn more in tomorrow's video about interpreting logistic regression coefficients. Give it a quick try here.    
 
 a. Interpret the intercept coefficient on the log(odds) scale. NOTE: You can do this just as you did for "Normal" regression models, but remember that the response here is log(odds of success).    
+When age is 0, log odds of success is 0.42569.
 b. Interpret the intercept coefficient on the odds scale. HINT: `exp()`   
-c. Interpret the `age` coefficient on the log(odds) scale. NOTE: You can do this just as you did for "Normal" regression models, but remember that the response here is log(odds of success).    
-d. The log(odds) scale isn't very nice. We can convert this to the odds scale as follows. If the `age` coefficient on the log(odds) scale is **b**, then **e^b** is the MULTIPLICATIVE change in ODDS of success per 1 year increase in age.
-e. **EXTRA:** Try to *prove* the relationship used in part d.    
-        
-        
+When age is 0, odds of success is exp(0.42569).
 
- 
+c. Interpret the `age` coefficient on the log(odds) scale. NOTE: You can do this just as you did for "Normal" regression models, but remember that the response here is log(odds of success).    
+
+For each 1 year increase in age, the log(odds of success) decreases by 0.2379.
+
+d. The log(odds) scale isn't very nice. We can convert this to the odds scale as follows. If the `age` coefficient on the log(odds) scale is **b**, then **e^b** is the MULTIPLICATIVE change in ODDS of success per 1 year increase in age.
+
+e. **EXTRA:** Try to *prove* the relationship used in part d 
+
+Follows from definition.
 
 
 
@@ -383,8 +389,15 @@ e. **EXTRA:** Try to *prove* the relationship used in part d.
 
 ## Exercise 11: Another climbing model
 
-a. Construct a model of `success` by `oxygen_used`.    
+a. Construct a model of `success` by `oxygen_used`.
+``` {r}
+climbing_model_2 <- glm(success ~ oxygen_used, climbers_sub, family = "binomial")
+summary(climbing_model_1)$coefficients
+```
 b. Predict the probability of success for a climber that uses oxygen and for a climber that doesn't use oxygen.
+``` {r}
+# predict(climbing_model_2, newdata = data_frame(FALSE))
+```
 c. Interpret the two model coefficients.
     
 
