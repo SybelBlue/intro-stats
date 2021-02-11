@@ -1,0 +1,352 @@
+# Logistic regression: Part II
+
+
+```{r message = FALSE}
+library(ggplot2)
+library(dplyr)
+```
+
+
+\
+\
+
+
+---
+
+**Logistic Regression**    
+
+
+Let $y$ be a binary categorical response variable:    
+$$y = 
+\begin{cases}
+1 & \; \text{ if event happens} \\
+0 & \; \text{ if event doesn't happen} \\
+\end{cases}$$    
+
+Further define
+
+$$\begin{split}
+p &= \text{ probability event happens} \\
+1-p &= \text{ probability event doesn't happen} \\
+\text{odds} & = \text{ odds event happens} = \frac{p}{1-p} \\
+\end{split}$$    
+
+
+Then a logistic regression model of $y$ by $x$ is
+$$\log(\text{odds}) = \beta_0 + \beta_1 x$$
+
+We can transform this to get (curved) models of odds and probability:
+
+$$\begin{split}
+\text{odds} & = e^{\beta_0 + \beta_1 x} \\
+p           & = \frac{\text{odds}}{\text{odds}+1} = \frac{e^{\beta_0 + \beta_1 x}}{e^{\beta_0 + \beta_1 x}+1} \\
+\end{split}$$
+
+
+\
+\
+
+
+**Coefficient interpretation for quantitative x**    
+$$\begin{split}    
+\beta_0 & = \text{ LOG(ODDS) when } x=0 \\
+e^{\beta_0} & = \text{ ODDS when } x=0 \\
+\beta_1 & = \text{ unit change in LOG(ODDS) per 1 unit increase in } x \\
+e^{\beta_1} & = \text{ multiplicative change in ODDS per 1 unit increase in } x \text{ (ie. the odds ratio)} \\
+\end{split}$$
+
+
+**Coefficient interpretation for categorical x**    
+$$\begin{split}    
+\beta_0 & = \text{ LOG(ODDS) at the reference category } \\
+e^{\beta_0} & = \text{ ODDS at the reference category } \\
+\beta_1 & = \text{ unit change in LOG(ODDS) relative to the reference} \\
+e^{\beta_1} & = \text{ multiplicative change in ODDS relative to the reference } \text{ (ie. the odds ratio)} \\
+\end{split}$$
+
+
+\
+\
+
+
+
+**Interpreting odds ratios**    
+
+If $e^{\beta_1} = 2$:    
+
+- the odds *double* when we increase x by 1    
+- the odds are twice as big when we increase x by 1
+
+If $e^{\beta_1} = 0.5$:    
+
+- the odds *cut in half* when we increase x by 1    
+- the odds are half (50%) as big when we increase x by 1
+
+
+
+
+---
+
+
+
+
+
+
+\
+\
+\
+\
+
+
+
+
+
+# Exercises
+
+Load the climbers data:
+
+```{r}
+climbers_sub <- read.csv("https://www.macalester.edu/~ajohns24/data/climbers_sub.csv") %>% 
+  select(peak_name, success, age, oxygen_used, year)
+```
+
+
+In yesterday's activity, we modeled climber `success`. Today we'll consider some more models:
+
+- `climb_model_1`: `success ~ peak_height`
+- `climb_model_2`: `success ~ oxygen_used`
+- `climb_model_3`: `success ~ age + oxygen_used`
+
+
+
+\
+\
+
+
+## Exercise 1: Hello!
+
+
+How do you plan to make wellness day a true wellness day?
+
+
+$$\mathcal{Dune} \text{ and } \texttt{Haskell}$$
+
+\
+\
+
+## Exercise 2: Normal or logistic?
+
+
+For each scenario below, indicate whether Normal or logistic regression would be the appropriate modeling tool.
+
+a. We want to model whether or not a person believes in climate change (y) based on their age (x).
+**logistic**
+
+b. We want to model whether or not a person believes in climate change (y) based on their location (x).
+**logistic**
+
+c. We want to model a person's reaction time (y) by how long they slept the night before (x).
+**normal**
+
+d. We want to model a person's reaction time (y) by whether or not they took a nap today (x).
+**normal**
+
+\
+\
+
+
+
+## Exercise 3: `climb_model_1`: `success` vs `year`
+
+a. With a goal of understanding how climbing success rates have changed over time, model `success` by `year`.
+``` {r}
+climb_model_1 <- glm(success ~ year, climbers_sub, family = "binomial")
+summary(climb_model_1)$coefficients
+```
+b. Write out the model formula and interpret both model coefficients on the *odds* scale.
+$$
+\log(success) = -119.3621 + 0.05934 year
+$$
+
+c. Both "by hand" and using the `predict()` function, predict the probability of success for a climber on a 2022 expedition. NOTE: Given the large scale of year, you could get very different answers depending upon how much you round your coefficients (round as little as possible).
+
+```{r}
+v <- -119.3621 + 0.05934 * 2022
+exp(v) / (1 + exp(v))
+
+predict(climb_model_1, newdata = data.frame(year = 2022))
+```
+
+
+d. Bonus: plot the model on the probability scale.    
+```{r}
+climbers_predictions <- climbers_sub %>% 
+  mutate(probability = climb_model_1$fitted.values) %>% 
+  mutate(odds = probability / (1-probability)) %>% 
+  mutate(log_odds = log(odds))
+
+ggplot(climbers_predictions, aes(x = age, y = probability)) + 
+  geom_smooth(se = FALSE) 
+
+```
+
+    
+
+\
+\
+
+
+
+## Exercise 4: `climb_model_2`: `success` vs `oxygen_used`    
+
+In this exercise you'll explore the relationship between `success` and the categorical `oxygen_used` predictor:    
+
+```{r}
+climb_model_2 <- glm(success ~ oxygen_used, climbers_sub, family = "binomial")
+summary(climb_model_2)$coef
+```
+
+a. Check out and summarize some plots.    
+    ```{r eval = FALSE}
+    # HINT CODE: rewrite in the chunk below
+    # A plot of oxygen_used alone
+    ggplot(climbers_sub, aes(x = ___)) + 
+      geom____()
+    
+    # A plot of oxygen_used and success
+    # (Use the same code as above, other than the fill)
+    ggplot(climbers_sub, aes(x = ___, fill = ___)) + 
+      geom____()
+    ```
+    
+```{r}
+ggplot(climbers_sub, aes(x = oxygen_used)) + 
+  geom_bar()
+
+# A plot of oxygen_used and success
+# (Use the same code as above, other than the fill)
+ggplot(climbers_sub, aes(x = oxygen_used, fill = success)) + 
+  geom_bar()
+```
+    
+
+b. Predict the odds *and* probability of success for a climber that doesn't use oxygen.
+```{r}
+l_odds <- predict(climb_model_2, newdata = data.frame(oxygen_used = FALSE))
+odds <- exp(l_odds)
+odds
+
+prob <- odds / (1 + odds)
+prob
+```
+
+
+c. Predict the odds *and* probability of success for a climber that does use oxygen.
+```{r}
+l_odds <- predict(climb_model_2, newdata = data.frame(oxygen_used = TRUE))
+odds_W_O2 <- exp(l_odds)
+odds_W_O2
+
+prob <- odds_W_O2 / (1 + odds_W_O2)
+prob
+```
+
+
+d. Calculate and interpret the following odds ratio: the odds of success for a climber that does use oxygen divided by the odds of success for a climber that doesn't use oxygen. Eg: By what degree do the odds increase?
+
+```{r}
+ratio <- odds_W_O2 / odds
+ratio
+```
+
+Your odds increase roughly 18 times having used oxygen.
+
+\
+\
+
+
+
+## Exercise 5: Interpretation
+
+a. On the odds scale, interpret the intercept coefficient from `climb_model_2`. HINT: exp(-1.328)
+```{r}
+exp(-1.328)
+```
+
+The starting odds at not using oxygen are 0.266.
+
+b. On the odds scale, interpret the `oxygen_usedTRUE` coefficient. HINT: exp(2.904)
+```{r}
+exp(2.904)
+```
+
+The improvement in odds having used oxygen are about 18-fold.
+
+
+c. Where have you seen the number in part b before?!
+
+The odds ratio!
+
+\
+\
+
+
+
+## Exercise 6: `climb_model_3`: `success` vs `age` and `oxygen_used`
+
+Just as with Normal regression, we can utilize more than 1 predictor in a logistic regression model. Let's try it!    
+
+```{r}
+climb_model_3 <- glm(success ~ age + oxygen_used, climbers_sub, family = "binomial")
+summary(climb_model_3)$coef
+```
+
+a. Construct and summarize a plot of this model on the probability scale:    
+    ```{r eval = FALSE}
+    # HINT CODE
+    ggplot(___, aes(x = ___, color = ___, y = as.numeric(success))) + 
+      geom_smooth(method = "glm", method.args = list(family = "binomial"), se = FALSE, fullrange = TRUE) +
+      labs(y = "probability of success")
+    
+    # Just for fun zoom out!
+    ggplot(___, aes(x = ___, color = ___, y = as.numeric(success))) + 
+      geom_smooth(method = "glm", method.args = list(family = "binomial"), se = FALSE, fullrange = TRUE) +
+      labs(y = "probability of success") + 
+      lims(x = c(-300, 400))
+    ```
+    
+```{r}
+ggplot(climb_model_3, aes(x = age, color = oxygen_used, y = as.numeric(success))) + 
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), se = FALSE, fullrange = TRUE) +
+  labs(y = "probability of success")
+
+ggplot(climb_model_3, aes(x = age, color = oxygen_used, y = as.numeric(success))) + 
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), se = FALSE, fullrange = TRUE) +
+  labs(y = "probability of success") + 
+  lims(x = c(-300, 400))
+```
+    
+    
+b. Interpret the 2 non-intercepts coefficients on the odds scale. Don't forget to "control for..."!
+
+```{r}
+exp(-0.51957247) # intercept
+exp(-0.02197407) # age coeff
+exp(2.89559690) # o2
+```
+
+
+Controlling for age, the odds intercept without oxygen is roughly 0.6. Likewise, each year older one is, one's odds decrease by approximately 2.2%, and using oxygen multiplies one's changes by about 18.1.
+
+
+
+\
+\
+
+
+
+## Exercise 7: Homework 4 + Wrapping Up
+
+If you finish early, please check out the logistic regression exercises in Homework 4. And as always, don't forget to knit and save your work today :)
+
+
