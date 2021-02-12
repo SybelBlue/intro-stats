@@ -135,6 +135,7 @@ senators %>%
   geom_boxplot()
 ```
  
+ Those who voted against the amendmnet were paide far less on average, and far less in IQR and outliers, than their pro-amendment counterparts.
 
  c. There’s a clear outlier that received a lot of money from auto manufacturers. Use dplyr code (don’t simply scan the data by eye) to identify the senator, and the state they represent. Extra: If you’re familiar with the auto industry, comment on why this state affiliation might not surprise us.
  
@@ -169,12 +170,13 @@ Let’s turn our attention to the relationship between the money senators receiv
 ```{r}
 senators_sub %>%
   ggplot(aes(fill = Party, x = AutoCont)) +
-  geom_histogram(bins = 30)
+  geom_histogram(bins = 50)
 
 senators_sub %>%
   ggplot(aes(color = Party, y = AutoCont)) +
   geom_boxplot()
 ```
+Democrats were paid far less than republicans in almost every measure.
 
  b. Calculate the average `AutoCont` received by each party.
 ```{r}
@@ -193,3 +195,119 @@ summary(cont_vs_party_model)$coef
  d. Interpret the `PartyR` coefficient.
 
 If the party is Republican, then contribution tends to be about $10k higher than a democratic counterpart.
+
+# 5 Votes vs party affiliation
+More importantly, we’re interested in modeling senators’ votes. Don’t forget to use the `senators_sub` data in this analysis!
+
+ a. Construct and interpret a visualization of the relationship between senators’ votes, their party affiliations, and the amount of money they received from auto manufacturers. NOTE: Use factor(Vote) instead of Vote to treat 0/1 as categories, not numbers.
+
+```{r}
+senators_sub %>%  
+  ggplot(aes(fill = Party, x = AutoCont)) +
+  geom_histogram(bins = 30) +
+  facet_wrap(~Affirmed)
+
+senators_sub %>%  
+  ggplot(aes(color = Affirmed, y = AutoCont)) +
+  geom_boxplot() +
+  facet_wrap(~Party)
+```
+
+Senators who voted against tended to get far less contributions than those who voted for, and a democrat who voted for the bill tended to get roughly the same contribution as a republican who voted against.
+
+ b. Construct a model of `Vote` by `AutoCont` and `Party` without an interaction. Report a model summary table.
+
+```{r}
+vote_by_cont <- glm(Vote ~ AutoCont + Party, senators_sub, family = "binomial")
+summary(vote_by_cont)$coefficients
+```
+
+ c. By leaving an interaction term out of the model, what are we assuming? (Don’t just give the definition of interaction. Rather, explain what this means in the context of this analysis.)
+ 
+ We would be assuming that party affiliation has no bearing on contribution, which contradicts what the previous plots suggests.
+ 
+# 6. Interpreting the model
+ a. Let p be the probability of a “yes” vote.
+
+   * Write down the model equation of p for Democrats.
+
+$$\begin{align}
+\log(odds(AutoContr, PartyR)) &= -1.4 + 0.0001 * AutoCont + 1.881 * PartyR \\
+P(AutoContr)_{Dem} &= \frac{\exp(-1.4 + 0.0001 * AutoCont)}{1 + \exp(-1.4 + 0.0001 * AutoCont)}
+\end{align}$$
+   
+
+   * Write down the model equation of p for Republicans.
+
+$$\begin{align}
+P(AutoContr)_{Rep} &= \frac{\exp(0.441 + 0.0001 * AutoCont)}{1 + \exp(0.441 + 0.0001 * AutoCont)}
+\end{align}$$
+
+   * Use the following code to visualize the model (approximately):
+
+```{r}
+ggplot(senators_sub, aes(x = AutoCont, y = Vote, color = Party)) + 
+    geom_smooth(method = "glm", method.args = list(family = "binomial"), se = FALSE, fullrange = TRUE)
+```
+
+ b. Interpret each of the `Intercept`, `AutoCont`, and `PartyR` coefficients in a meaningful way (in the context of the analysis and NOT on a log scale!). Don’t forget to note which variables you’re “controlling for” in these interpretations.
+
+The odds of a democrat with no contributions voting to affirm the amendment are about 0.25. The odds of a republican in the same circumstance voting to affirm are 6.56 higher than the democrat's. On average, each $1000 donated to a democrat increases their odds of voting for the amendment by just over 11%.
+
+ c. For each of the following senators, calculate the probability that they’d vote “yes” for the pro-auto manufacturer amendment. You must show work and do the calculations from scratch, though you can check your work with predict().
+
+```{r}
+# converts from log(odds(E)) to prob(E)
+from_log_odds <- function(log_odds) {
+  odds <- exp(log_odds)
+  return (odds / (odds + 1))
+}
+
+# gets the prob of affirmative vote given a contribution and affiliation
+prob_for <- function(contribution, is_republican) { 
+  log_odds <- -1.4 + 0.0001 * contribution + 1.881 * is_republican
+  return (from_log_odds(log_odds))
+}
+
+# calculates the residual of our manually calculated model vs `predict` on the constructed model
+model_residual <- function(contribution, is_republican) {
+  party_sym <- if (is_republican == 1) "R" else "D"
+  predicted_log_odds <- vote_by_cont %>%
+    predict(newdata = data.frame(AutoCont = contribution, Party = party_sym))
+  predicted_prob <- from_log_odds(predicted_log_odds)
+  guess <- prob_for(contribution, is_republican)
+  return (guess - predicted_prob)
+}
+```
+
+
+ * A Republican that received $1,000 from auto manufacturers.
+```{r}
+prob_for(1000, 1)
+model_residual(1000, 1)
+```
+
+ * A Democrat that received $1,000 from auto manufacturers.
+```{r}
+prob_for(1000, 0)
+model_residual(1000, 0)
+```
+ * A Republican that received $20,000 from auto manufacturers.
+```{r}
+prob_for(20000, 1)
+model_residual(20000, 1)
+```
+ * A Democrat that received $20,000 from auto manufacturers.
+```{r}
+prob_for(20000, 0)
+model_residual(20000, 0)
+```
+
+ d. Summarize your observations. What are the main take-home messages from this analysis? What was the relationship between votes, contributions, and party affiliation? NOTE: Had we used data for a vote on a different issue, we might see a different relationship between which party received the most money and how they voted!
+
+There is a high correlation between an affirmative vote and a high contribution, as well as republican affiliation and high contribution. 
+
+ e. Explain why we can’t use this model to establish a cause-and-effect between money and votes (eg: that more money causes a senator to vote a certain way).
+ 
+ It is also possible that because a senator voted this way, a company then decided to donate more to their campaign because the company's interests were better served. In other words, we don't know which came first - the vote or the money.
+
