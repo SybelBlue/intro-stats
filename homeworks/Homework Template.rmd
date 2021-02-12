@@ -12,9 +12,9 @@ output:
 \
 
 
-## EXERCISE 1
+# EXERCISE 1
 
-### Part a
+## Part a
 
 
 ```{r}
@@ -23,7 +23,7 @@ output:
 
 
 
-### Part b
+## Part b
 
 ```{r}
 #If the exercise requires computing, put your code here
@@ -34,14 +34,14 @@ output:
 \
 
 
-## EXERCISE 2
+# EXERCISE 2
 
-### Part a
+## Part a
 
 ``` {r}
 ```
 
-### Part b
+## Part b
 
 ``` {r}
 ```

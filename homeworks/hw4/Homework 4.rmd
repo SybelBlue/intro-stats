@@ -1,5 +1,5 @@
 ---
-title: "Homework ????"
+title: "Homework 4"
 author: Logan Caraco
 output: 
   html_document:
@@ -12,14 +12,38 @@ output:
 \
 
 
-## EXERCISE 1
+```{r, message=FALSE}
+library(ggplot2)
+library(dplyr)
 
-### Part a
+library(magrittr)
+```
 
+# 1. Cars
+Consider the cars data which contains the sales price and other information for used Ford cars in St Paul and Dallas. To begin, we can model the price of a car by its mileage and age (in years) without an interaction:
 
 ```{r}
-#If the exercise requires computing, put your code here
+cars <- read.csv("http://www.macalester.edu/~ajohns24/data/FordsSub.csv")
+car_model_1 <- lm(Price ~ Mileage + Age, cars)
+summary(car_model_1)$coefficients
 ```
+
+The corresponding model formula corresponds to the plane shown below:
+<center>`Price = 15820 - 0.069 Mileage - 480.09 Age`</center>
+
+By not including an interaction term, the above model assumed that the association between price and mileage does not differ by the age of the car. However, this assumption appears to be false. Instead, consider a model that includes an interaction between mileage and age:
+
+```{r}
+car_model_2 <- lm(Price ~ Age * Mileage, cars)
+summary(car_model_2)$coefficients
+```
+
+<center> `Price = 18950 - 1461*Age - 0.122*Mileage  + 0.012 Age*Mileage` </center>
+
+ a. Interpret the intercept coefficient, 18950. (This actually makes sense in this model!)
+ *A brand new car (Age, Mileage = 0) has a starting price of $18,950.*
+
+ b. Use car_model_2 to predict the price of a 5 year old car that has 10,000 miles on it.
 
 
 
