@@ -1,0 +1,46 @@
+---
+title: "Project"
+author: "Logan Caraco"
+date: "2/16/2021"
+output: html_document
+---
+
+```{r, message=FALSE}
+library(ggplot2)
+
+library(dplyr)
+library(magrittr)
+
+library(rattle)
+```
+
+
+```{r}
+data(weatherAUS)
+
+weatherAUS %>%
+  head(5)
+```
+
+``` {r}
+weatherAUS %>%
+  select(Location) %>%
+  unique
+
+weatherAUS %>%
+  ggplot(aes(x = Location)) +
+  geom_histogram(stat = "count")
+```
+
+
+```{r}
+rainy_simple <- weatherAUS %>% 
+  filter(RainToday != "NA", RainTomorrow != "NA", Pressure3pm != "NA") %>%
+  select(RainToday, RainTomorrow, Pressure3pm)
+
+rainy_simple %>%
+  ggplot(aes(color = RainTomorrow, x = Pressure3pm)) +
+  geom_histogram(stat = "count", bins=30) +
+  facet_wrap(~RainToday)
+```
+
