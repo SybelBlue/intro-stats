@@ -1,0 +1,499 @@
+# Normal model + random samples
+
+
+\
+\
+
+
+**Goals**    
+
+- Explore the Normal probability model, a tool we'll need to turn information in our **sample data** into **inferences** about the broader **population**.    
+- Run a little class experiment to consider the ideas of randomness, sample estimation, and how they connect to the Normal model. 
+
+
+
+\
+\
+
+
+
+**Getting Started**    
+
+Load some usual packages and run the following code which defines a `shaded_normal()` **function** which is specialized to this activity alone:
+
+```{r message = FALSE, warning = FALSE}
+# Load packages
+library(dplyr)
+library(ggplot2)
+
+shaded_normal <- function(mean, sd, a = NULL, b = NULL){
+  min_x <- mean - 4*sd
+  max_x <- mean + 4*sd
+  a <- max(a, min_x)
+  b <- min(b, max_x)
+  ggplot() + 
+    #xlim(min_x, max_x) + 
+    scale_x_continuous(limits = c(min_x, max_x), breaks = c(mean - sd*(0:3), mean + sd*(1:3))) +
+    stat_function(fun = dnorm, args = list(mean = mean, sd = sd)) + 
+    stat_function(geom = "area", fun = dnorm, args = list(mean = mean, sd = sd), xlim = c(a, b), fill = "blue") + 
+    labs(y = "density")
+}
+```
+
+
+\
+\
+\
+\
+
+
+## Experiment
+
+[Github user Tony McGovern](https://github.com/tonmcg/US_County_Level_Election_Results_08-20) has compiled and made available presidential election results for the **population of all 3000+ U.S. counties (except Alaska)**. (Image: [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Map_of_USA_with_county_outlines_(black_%26_white).png)) 
+
+![](https://upload.wikimedia.org/wikipedia/commons/6/68/Map_of_USA_with_county_outlines_%28black_%26_white%29.png)
+
+
+Import the combined and slightly wrangled data:
+
+```{r}
+# Import & wrangle data
+elections <- read.csv("https://www.macalester.edu/~ajohns24/data/election_2020.csv") %>% 
+  mutate(per_gop_2020 = 100*per_gop_2020, 
+    per_gop_2016 = 100*per_gop_2016, per_gop_2012 = 100*per_gop_2012)
+```
+
+The Republican (or "GOP") candidate for president was Donald Trump in 2020 and Mitt Romney in 2012. Our goal will be to understand how Trump's 2020 vote percentage (`per_gop_2020`) relates to Romney's 2012 vote percentage (`per_gop_2012`). BUT let's **pretend** that we're working within the typical scenario - we don't have access to the entire population of interest. Instead, we need to **estimate** population trends using data from a randomly selected **sample** of counties.
+
+
+
+
+
+\
+\
+
+
+## Exercise 1: Sampling & randomness in RStudio
+
+We'll be taking some *random samples* of counties throughout this activity. The underlying *random number generator* plays a role in the random sample we happen to get:    
+
+```{r}
+# Try the following chunk A FEW TIMES
+sample_n(elections, size = 2, replace = FALSE)
+```
+
+```{r}
+# Try the following FULL chunk A FEW TIMES
+set.seed(155)
+sample_n(elections, size = 2, replace = FALSE)
+```
+
+**NOTE:**  If we `set.seed(some positive integer)` before taking a random sample, we'll get the same results.  This **reproducibility** is important:    
+
+- we get the same results every time we knit the Rmd    
+- we can share our work with others & ensure they get our same answers    
+- it wouldn't be great if you submitted your work to, say, a journal and weren't able to back up / confirm / reproduce your results!    
+
+
+
+
+\
+\
+
+
+
+## Exercise 2: Take your own sample
+
+a. Set your own random number seed to your own phone number -- just the numbers so that you have a 7-digit or 10-digit integer. (The number isn't important. What's important is that your number is different than other students'.)    
+```{r}
+set.seed(818934757)
+```    
+
+b. Take a random sample of **10** counties:        
+```{r}
+my_sample <- sample_n(elections, size = 10, replace = FALSE)
+my_sample                       
+```
+    
+
+c. Calculate the average percentage of votes that Trump won in your 10 sample counties.    
+```{r}
+my_sample %>% 
+  summarize(mean(per_gop_2020))
+```
+
+d. Construct and plot your model of Trump's 2020 vs 2012 vote percentage:
+```{r}
+ggplot(my_sample, aes(x = per_gop_2012, y = per_gop_2020)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE)
+
+my_model <- lm(per_gop_2020 ~ per_gop_2012, my_sample)
+summary(my_model)$coefficients
+```
+
+
+
+        
+\
+\
+
+
+
+## Exercise 3: Report your work
+
+Indicate your sample mean, intercept, and slope *estimates* in [this survey](https://docs.google.com/forms/d/e/1FAIpQLScuomE-qo6_wCjMuRA04OTvtoPK8BIDBT_eOLbCjLn7eXRLWw/viewform?usp=sf_link). You'll come back to analyze this experiment data later in the activity!
+    
+
+\
+\
+\
+\
+
+
+
+    
+
+## Exercises: Normal model
+
+In this section you will practice the concepts you explored in today's video ([slides](https://drive.google.com/file/d/1wHP8aqkC10zKzwMxGxHX6KppbGB6mi5m/view?usp=sharing))
+
+
+## Exercise 4: A Normal model
+
+Suppose that the speeds of cars on a highway, in miles per hour, can be reasonably represented by the following model: N(55, 5^2^).    
+
+a. What are the mean speed and standard deviation in speeds from car to car?    
+
+\[55 ~\&~ 2\]
+
+b. Plot this Normal model. (Remove the `#` once you're ready to run the code.)
+```{r}
+shaded_normal(mean = 55, sd = 2)
+```
+
+
+
+\
+\
+
+
+
+## Exercise 5: 68-95-99.7 Rule
+
+a. Provide the range of the middle 68% of speeds and shade in the corresponding region on your Normal curve. NOTE: `a` is the lower end of the range and `b` is the upper end.    
+
+```{r}
+shaded_normal(mean = 55, sd = 2, a = 53, b = 57)
+```
+    
+
+b. Repeat part a for the middle 95% and the middle 99.7%.
+
+```{r}
+shaded_normal(mean = 55, sd = 2, a = 51, b = 59)
+shaded_normal(mean = 55, sd = 2, a = 49, b = 61)
+```
+
+
+
+\
+\
+
+
+
+## Exercise 6: Calculate probabilities
+
+We can also use the 68-95-99.7 Rule to calculate probabilities!    
+
+a. Calculate the probability that a car's speed exceeds 60mph. The following plot can provide some intuition:    
+```{r}
+shaded_normal(mean = 55, sd = 5, a = 60)
+(100-68)/2
+```
+
+
+b. Calculate the probability that a car will be traveling at less than 45mph.
+```{r}
+shaded_normal(mean = 55, sd = 5, b = 45)
+(100-95)/2
+```
+
+
+c. Calculate the probability that a car will be traveling at less than 40mph.
+```{r}
+shaded_normal(mean = 55, sd = 5, b = 40)
+(100-99.7)/2
+```
+
+
+
+\
+\
+
+
+
+## Exercise 7: Approximate probabilities
+
+Speeds don't always fall exactly in increments of 5pmh (the standard deviation) from the mean of 55mph. Though we can use other tools to calculate probabilities in these scenarios, the 68-95-99.7 Rule can still provide insight. For each scenario below, indicate which *range* the probability falls into: less than 0.0015, between 0.0015 and 0.025, between 0.025 and 0.16, or greater than 0.16.    
+
+a. the probability that a car's speed exceeds 57mph    
+```{r}
+shaded_normal(mean = 55, sd = 5, a = 57)
+```
+
+**greater than 0.16**
+
+b. the probability that a car's speed exceeds 67mph 
+```{r}
+shaded_normal(mean = 55, sd = 5, a = 67)
+```
+
+**between 0.0015 and 0.025**
+
+c. the probability that a car's speed exceeds 71mph 
+```{r}
+shaded_normal(mean = 55, sd = 5, a = 71)
+```
+
+**less than 0.0015**
+
+\
+\
+
+
+
+## Exercise 8: Z scores
+
+
+Inherently important to all of our calculations above is *how many standard deviations a value "X" is from the mean*. This distance is called a **Z-score** and can be calculated as follows:    
+    
+(X - mean) / sd
+
+a. Driver A is traveling at 60mph on the highway where speeds are N(55, 5^2^) and the speed limit is 55mph. Calculate and interpret their Z-score.  
+
+```{r}
+calc_z <- function(mu, sig, val) { (val - mu) / sig }
+
+calc_z(55, 5, 60)
+```
+
+About 35% of drivers are driving at a speed farther away from the limit.
+
+b. Driver B is traveling at 36mph on a residential road where speeds are N(30, 3^2^) and the speed limit is 30mph. Calculate and interpret their Z-score.     
+
+```{r}
+calc_z(30, 3, 36)
+```
+
+Only 2.5% of drivers are driving faster on these roads - this person is speeding more noticiably.
+
+c. Both drivers are speeding, though in different scenarios (highway vs residential). Who is speeding more? Explain. NOTE: The following plots might provide some insights:    
+
+
+```{r}
+# Driver A
+shaded_normal(mean = 55, sd = 5) + 
+geom_vline(xintercept = 60)
+
+# Driver B
+shaded_normal(mean = 30, sd = 3) + 
+  geom_vline(xintercept = 36)  
+```
+    
+**see above**
+
+
+
+
+
+\
+\
+\
+\
+
+
+
+
+
+
+## Exercises: Random samples
+
+
+The Normal exercises above are directly relevant to using our sample data to learning about the broader population of interest. Let's see where these two ideas connect!
+
+\
+\
+
+
+## Exercise 9: Comparing mean estimates
+
+Recall that each student took a sample of 10 U.S. counties. From this sample, you each calculated the Trump's mean 2020 support and modeled Trump's 2020 results by Romney's 2012 results. Import the resulting `sample_mean`, `sample_intercept`, and `sample_slope` values: 
+
+```{r}
+results <- read.csv("https://www.macalester.edu/~ajohns24/data/election_simulation.csv")
+names(results) <- c("time", "sample_mean", "sample_intercept", "sample_slope")
+```
+
+a. Construct and describe a density plot of the `sample_mean` values. What's the range in estimates? What's the shape of the density plot (does it look Normal-ish)?    
+```{r}
+ggplot(results, aes(x = sample_mean)) + 
+  geom_density()
+```
+
+
+b. Based on part a, what do you think is the *actual* mean Trump support among all counties? What's your reasoning?    
+
+Probably around 66. It looks like that's where the peak is.
+
+c. Check your intuition. Calculate the mean Trump support across all counties. Where does this fall along the density plot of your sample estimates? How close is *your* mean estimate to the actual mean (ie. was yours a good or bad estimate)?    
+
+```{r}
+elections %>% 
+  summarize(mean(per_gop_2020))
+```
+
+
+
+\
+\
+
+
+## Exercise 10: Comparing model estimates
+
+Next, let's examine how our estimates of the relationship between Trump's 2020 support and Romney's 2012 support varied from student to student.
+    
+a. Construct and describe density plots of the `sample_intercept` and `sample_slope` values. (Do these look Normal-ish?)    
+```{r}
+ggplot(results, aes(x = sample_intercept)) + 
+  geom_density()
+ggplot(results, aes(x = sample_slope)) + 
+  geom_density()
+```    
+
+
+b. Plot the sample model trends. How do these compare to the *actual* trend among all counties (red)?    
+```{r}
+ggplot(elections, aes(x = per_gop_2012, y = per_gop_2020)) +
+  geom_abline(data = results, aes(intercept = sample_intercept, slope = sample_slope), color = "gray") +
+  geom_smooth(method = "lm", color = "red", se = FALSE)
+```
+
+
+c. How does *your* sample model trend compare to the *actual* trend:    
+    
+```{r}
+actual_trend <- lm(per_gop_2020 ~ per_gop_2012, elections)
+summary(actual_trend)$coefficients
+```
+
+
+\
+\
+
+
+## Exercise 11: Reflection
+
+Reflect upon the exercises above. Summarize what you've learned about using sample data to estimate features of a broader population. For example, how do sample estimates behave? How might we model sample estimates?
+
+
+
+\
+\
+\
+\
+
+
+
+## Optional: mapping!
+
+
+Visualizing the election results on an actual map can provide some intuition for our work. To make maps, load the following package. NOTE: You'll likely need to install this package first.
+
+```{r}
+library(socviz)
+```
+
+Now process the data to include mapping info (eg: latitude and longitude coordinates):
+
+```{r}
+mapping_data <- elections %>% 
+  rename(id = county_fips) %>% 
+  mutate(id = as.character(id)) %>% 
+  mutate(id = ifelse(nchar(id) == 4, paste0("0",id), id)) %>% 
+  left_join(county_map, elections, by = "id")
+```
+
+
+Now make some maps!
+
+```{r}
+ggplot(mapping_data, aes(x = long, y = lat, fill = per_gop_2020, group = group)) + 
+  coord_equal() + 
+  geom_polygon(color = NA)
+```
+
+```{r}
+ggplot(mapping_data, aes(x = long, y = lat, fill = per_gop_2020, group = group)) + 
+  coord_equal() + 
+  geom_polygon(color = NA) + 
+  scale_fill_gradientn(colours = c("blue", "purple", "red"))
+```
+
+
+
+```{r}
+mn <- mapping_data %>% 
+  filter(state_name == "Minnesota")
+ggplot(mn, aes(x = long, y = lat, fill = per_gop_2020, group = group)) + 
+  coord_equal() + 
+  geom_polygon(color = NA) + 
+  scale_fill_gradientn(colours = c("blue", "purple", "red"), values = scales::rescale(seq(0, 100, by = 10)))
+```
+
+
+\
+\
+
+
+
+**Play around!**    
+
+- Check out another state.
+- Plot the results of a different election.
+- Define and map a new variable that looks at the difference between `per_gop_2020` and `per_gop_2016` (ie. how did Trump's support shift from 2016 to 2020?).
+
+
+```{r}
+mn <- mapping_data %>% 
+  filter(state_name == "California")
+ggplot(mn, aes(x = long, y = lat, fill = per_gop_2020, group = group)) + 
+  coord_equal() + 
+  geom_polygon(color = NA) + 
+  scale_fill_gradientn(colours = c("blue", "purple", "red"), values = scales::rescale(seq(0, 100, by = 10)))
+```
+
+
+```{r}
+mn <- mapping_data %>% 
+  filter(state_name == "Minnesota")
+ggplot(mn, aes(x = long, y = lat, fill = per_gop_2012, group = group)) + 
+  coord_equal() + 
+  geom_polygon(color = NA) + 
+  scale_fill_gradientn(colours = c("blue", "purple", "red"), values = scales::rescale(seq(0, 100, by = 10)))
+```
+
+
+```{r}
+mapping_data <- mapping_data %>% mutate(diff_20_16 = per_gop_2020 - per_gop_2016)
+ggplot(mapping_data, aes(x = long, y = lat, fill = diff_20_16, group = group)) + 
+  coord_equal() + 
+  geom_polygon(color = NA) + 
+  scale_fill_gradientn(colours = c("blue", "purple", "red"))
+```
+
+\
+\
+\
+\
+
