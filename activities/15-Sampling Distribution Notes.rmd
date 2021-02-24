@@ -1,0 +1,381 @@
+# Sampling distributions
+
+
+
+\
+\
+
+
+
+**Goals**    
+
+Via simulation, explore the concept of **sampling distributions**.
+
+
+
+\
+\
+
+
+
+**Getting Started**    
+
+There's a lot of new syntax today! Don't let it be a distraction. Just like `ggplot()`, facility will come with repeated use. First, load some packages:
+
+```{r message = FALSE, warning = FALSE}
+# Packages you definitely already have
+library(dplyr)
+library(ggplot2)
+
+# Packages you'll need but might not yet have
+library(infer)
+library(broom)
+```
+
+
+\
+\
+\
+\
+
+
+**The story**
+
+Recall the `elections` data from our previous activity:
+
+```{r}
+# Import & wrangle data
+elections <- read.csv("https://www.macalester.edu/~ajohns24/data/election_2020.csv") %>% 
+  mutate(per_gop_2020 = 100*per_gop_2020, 
+    per_gop_2016 = 100*per_gop_2016, per_gop_2012 = 100*per_gop_2012)
+```
+
+Specifically, we have **complete population (census) data** on Trump's vote percentage in each county outside Alaska. Thus, we know that the relationship trend between Trump's 2020 support and Romney's 2012 support is as follows:    
+
+```{r}
+# Model per_gop_2020 by per_gop_2012
+population_mod <- lm(per_gop_2020 ~ per_gop_2012, data = elections)
+summary(population_mod)$coefficients
+
+# Visualize the model
+ggplot(elections, aes(x = per_gop_2012, y = per_gop_2020)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+
+\
+\
+
+
+**FORGET THAT YOU KNOW ALL OF THE ABOVE.**    
+
+Let's **pretend** that we're working within the typical scenario - we don't have access to the entire population of interest. Instead, we need to **estimate** population trends using data from a randomly selected **sample** of counties. We did just this in the previous activity. Each student took a sample of 10 counties and estimated the trend from their sample data:
+
+
+```{r}
+# Import our experiment data
+results <- read.csv("https://www.macalester.edu/~ajohns24/data/election_simulation.csv")
+names(results) <- c("time", "sample_mean", "sample_intercept", "sample_slope")
+
+# Plot our sample estimates vs the actual trend (red)
+ggplot(elections, aes(x = per_gop_2012, y = per_gop_2020)) +
+  geom_abline(data = results, aes(intercept = sample_intercept, slope = sample_slope), color = "gray") + 
+  geom_smooth(method = "lm", color = "red", se = FALSE)
+```
+
+\
+\
+\
+
+
+**Moving on**
+
+Our little experiment reflects very few of the more than $_{3109}C_{10} > 2.3*10^{28}$ different samples of 10 counties that we could get from the entire population of 3109 counties!! In this activity, you'll run a *simulation* to study just how different these estimates could be.    
+
+
+\
+\
+\
+\
+
+
+
+
+# Exercises 
+
+
+## Exercise 1: Taking multiple samples
+
+Whereas `sample_n()` takes a single sample of size "n" from a data set, `rep_sample_n` takes *multiple* samples of size n. To get a feel for it, take **4** samples of size **2**. NOTE: The `replicate` variable in the output indicates the sample (1, 2, 3, 4) to which each sampled case corresponds.        
+
+```{r}
+try <- rep_sample_n(elections, size = 2, reps = 4, replace = FALSE)
+dim(try)
+try
+```
+
+
+\
+\
+
+
+
+## Exercise 2: 500 samples of size 10
+
+
+To get a sense for the wide variety of samples we might get, take **500** samples of size n = **10**.    
+
+```{r}
+set.seed(155)
+samples_10 <- rep_sample_n(elections, size = 10, reps = 500, replace = FALSE)
+```    
+    
+Each sample produces a different estimate of the model trend between `per_gop_2020` and `per_gop_2012`. Plot these **500** sample model estimates on the same frame:
+
+```{r}    
+ggplot(samples_10, aes(x = per_gop_2012, y = per_gop_2020, group = replicate)) + 
+  geom_smooth(method = "lm", se = FALSE, 
+    color = "gray", size = 0.5) 
+```    
+    
+
+
+
+\
+`
+
+
+
+## Exercise 3: 500 sample slopes
+
+
+Let's focus on the slopes of these 500 sample models.    
+
+a. Save the 500 `per_gop_2012` (slope) coefficients, stored under the `estimate` variable in the `slopes_10` data frame.        
+```{r}
+slopes_10 <- samples_10 %>%    
+  group_by(replicate) %>%     
+  do(lm(per_gop_2020 ~ per_gop_2012, data = .) %>% tidy()) %>% 
+  filter(term == "per_gop_2012")
+```
+    
+```{r} 
+# Check it out
+head(slopes_10)
+dim(slopes_10)
+```    
+
+b. Construct a histogram of the 500 sample estimates of the true slope. This histogram approximates a **sampling distribution** of the sample slopes.    
+    
+```{r}
+ggplot(slopes_10, aes(x = estimate)) + 
+  geom_histogram(color = "white") + 
+  xlim(0.2, 1.8)
+```    
+    
+c. Describe the sampling distribution: What's its general shape?  Where is it centered? Roughly what's its spread / ie. what's the range of estimates you observed?    
+    
+Normal.
+
+\
+\
+
+
+
+
+## Exercise 4: Increasing sample size
+
+Suppose we increased our sample size from n = 10 to n = 50. What impact do you *anticipate* this having on the sampling distribution of  sample slopes:          
+
+- Around what value would you expect the distribution of sample slopes to be centered?    
+
+About 1.
+
+- What general shape would you expect the distribution to have?    
+
+Bell curve.
+
+- In comparison to estimates based on the samples of size 10, do you think the estimates based on samples of size 50 will be closer to or farther from the true slope (on average)? Why?    
+
+Closer, because the odds of getting nearer to the true slope are much higher
+    
+\
+
+
+
+## Exercise 5: 500 samples of size 50
+
+
+Test your intuition. Fill in the blanks to repeat the simulation process with samples of size n = 50.    
+
+```{r eval=FALSE}
+# HINT CODE: Do not change. Type in the chunk below
+# Take 500 samples of size n = 50
+set.seed(155)
+samples_50 <- rep_sample_n(elections, size = ___, reps = ___, replace = FALSE)
+
+# Plot the 500 sample model estimates
+ggplot(___, aes(x = ___, y = ___, group = ___)) + 
+  geom_smooth(method = "lm", se = FALSE, size = 0.5) 
+
+# Store the 500 slope estimates
+slopes_50 <- ___ %>%    
+  group_by(___) %>%     
+  ___(lm(___ ~ ___, data = .) %>% tidy()) %>% 
+  filter(term == "per_gop_2012")
+
+# Construct a histogram of the 500 sample slope estimates.    
+ggplot(___, aes(x = estimate)) + 
+  geom_histogram(color = "white") + 
+  xlim(0.2, 1.8)
+```    
+
+
+```{r}
+# Take 500 samples of size n = 50
+set.seed(155)
+samples_50 <- rep_sample_n(elections, size = 50, reps = 500, replace = FALSE)
+
+# Plot the 500 sample model estimates
+ggplot(samples_50, aes(x = per_gop_2012, y = per_gop_2020, group = replicate)) + 
+  geom_smooth(method = "lm", se = FALSE, size = 0.5) 
+
+# Store the 500 slope estimates
+slopes_50 <- samples_50 %>%    
+  group_by(replicate) %>%     
+  do(lm(per_gop_2020 ~ per_gop_2012, data = .) %>% tidy()) %>% 
+  filter(term == "per_gop_2012")
+
+# Construct a histogram of the 500 sample slope estimates.    
+ggplot(slopes_50, aes(x = estimate)) + 
+  geom_histogram(color = "white") + 
+  xlim(0.2, 1.8)
+```
+
+
+
+\
+\
+
+
+## Exercise 6: 500 samples of size 200
+
+
+Finally, repeat the simulation process with samples of size n = 200.    
+
+
+```{r}
+# Take 500 samples of size n = 200
+set.seed(155)
+samples_200 <- rep_sample_n(elections, size = 200, reps = 500, replace = FALSE)
+
+# Plot the 500 sample model estimates
+ggplot(samples_200, aes(x = per_gop_2012, y = per_gop_2020, group = replicate)) + 
+  geom_smooth(method = "lm", se = FALSE, size = 0.5) 
+
+# Store the 500 slope estimates
+slopes_200 <- samples_200 %>%    
+  group_by(replicate) %>%     
+  do(lm(per_gop_2020 ~ per_gop_2012, data = .) %>% tidy()) %>% 
+  filter(term == "per_gop_2012")
+
+# Construct a histogram of the 500 sample slope estimates.    
+ggplot(slopes_200, aes(x = estimate)) + 
+  geom_histogram(color = "white") + 
+  xlim(0.2, 1.8)
+```
+    
+
+\
+\
+
+
+
+
+## Exercise 7: Impact of sample size
+
+
+a. Compare the sampling distributions of the sample slopes for the estimates based on sizes 10, 50, and 200 by plotting them on the same frame:    
+
+```{r}
+# Combine the estimates & sample size into a new data set
+simulation_data <- data.frame(
+  estimates = c(slopes_10$estimate, slopes_50$estimate, slopes_200$estimate), 
+  sample_size = rep(c("10","50","200"), each = 500))
+
+# Construct density plot
+ggplot(simulation_data, aes(x = estimates, color = sample_size)) + 
+  geom_density() + 
+  labs(title = "SAMPLING Distributions")
+```    
+
+b. Calculate the **mean** and **standard deviation** in sample slopes calculated from samples of size 10, 50, and 200.    
+```{r}
+simulation_data %>% 
+  group_by(sample_size) %>% 
+  summarize(mean(estimates), sd(estimates))
+```
+    
+c. Since an estimate's deviation from the mean reflects its *error*, we call the standard deviation of estimates the **"standard error"**. The standard error indicates the typical distance of a sample estimate from the actual population value. *Interpret* and compare the three standard errors.    
+
+Increasing the sample size from 10 to 50 decreased the standard error by about the same amount as from 50 to 200. There are diminishing returns on increasing sample size, but at size 50, it is very accurate.
+
+
+\
+\
+
+
+## Exercise 8: Properties of sampling distributions    
+    In light of your investigations, complete the following statements.    
+    
+    a. For all sample sizes, the shape of the sampling distribution is normal.    
+    b. As sample size increases:    
+        The average sample slope estimate IS FAIRLY STABLE.    
+        The standard deviation of the sample slopes DECREASES.    
+    c. Thus, as sample size increases, our sample slopes become MORE RELIABLE. 
+    
+    
+    
+\
+\
+
+
+
+## Exercise 9: Optional but encouraged data drill
+
+
+```{r}
+# What was Trump's lowest vote percentage?
+
+
+# The highest?
+
+
+# Show the state_name, county_name, and per_gop_2020 of the 6 counties where Trump had the lowest support
+
+
+# Show the state_name, county_name, and per_gop_2020 of the 6 counties where Trump had the highest support
+
+
+# What was Trump's lowest vote percentage in Minnesota? In what county was this?
+
+
+# The highest?
+
+
+# Construct and comment on a plot of voter turnout
+# in 2020 (total_votes_2020) vs 2016 (total_votes_2016)
+# For reference, add on a geom_abline(intercept = 0, slope = 1)
+
+
+# What other questions do you have?
+
+```
+    
+    
+\
+\
+
+
+    

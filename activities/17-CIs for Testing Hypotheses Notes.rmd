@@ -1,0 +1,302 @@
+# Using confidence intervals for testing hypotheses
+
+\
+
+
+# Getting started
+
+
+**Goal**    
+
+Use confidence intervals to test for statistical significance.
+
+\
+\
+
+
+
+**The data story**
+
+
+Who has big brains? It's not an easy thing to measure! Willeman et al. conducted a study that used magnetic resonance imaging (MRI) to measure brain size. The MRI scans consisted of 18 horizontal MR images that were 5 mm thick and 2.5 mm apart.  Further, each image covered a 256 x 256 pixel area. Any pixel with a non-zero gray scale was considered to be "part of the brain".  
+
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Computed_tomography_of_human_brain_-_large.png/1599px-Computed_tomography_of_human_brain_-_large.png)
+
+[image source](https://en.wikipedia.org/wiki/File:Computed_tomography_of_human_brain_-_large.png)
+
+
+
+Using data on 38 subjects, we'll explore the association between brain size and height:
+
+Variable    Description
+----------- -------------------------------------------------------------------------------------------------------
+`MRICount`  total pixel count of non-zero gray scale in 18 MRI scans (the larger the count, the larger the brain!)
+`Height`    subject's height in inches
+
+\
+
+
+
+The actual relationship between these quantitative variables in the population of *all* adults can be represented by the equation
+
+$$\text{MRICount} = \beta_0 + \beta_1 \text{Height}$$
+
+where $\beta_0$ and $\beta_1$ are unknown. Instead, we'll *estimate* this model using our sample data:
+
+```{r warning = FALSE, message = FALSE}
+# Load packages
+library(ggplot2)
+library(dplyr)
+
+# Import data
+brain <- read.csv("https://www.macalester.edu/~ajohns24/data/BrainEESEE.csv")
+
+# Construct the sample model
+brain_mod_1 <- lm(MRICount ~ Height, data = brain)
+summary(brain_mod_1)$coefficients
+
+# Plot the model
+ggplot(brain, aes(x = Height, y = MRICount)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+
+\
+\
+\
+\
+
+
+
+
+# Exercises 
+
+
+## Exercise 1: REVIEW: CI for slope $\beta_1$    
+    
+a. Use the CLT with the 68-95-99.7 Rule to calculate an approximate 95% CI for the true $\beta_1$. Check your work:
+
+```{r}
+confint(brain_mod_1, level = 0.95)
+```    
+    
+    
+b. How can we interpret this CI?    
+    - We're 95% confident that for every 1 inch increase in height, the corresponding (average) increase in brain size for **people in the population** is between 5724.255 and 15655.78 pixels.
+    
+\
+\
+
+
+
+## Exercise 2: Inference for $\beta_1$
+
+a. What can we conclude from the 95% CI for $\beta_1$: is there significant evidence of a positive association between height and brain size? Explain your reasoning.
+
+Yes, the lower confint bound is still very positive.
+
+b. Alternatively (yet equivalently), answer this question using the **confidence bands** around our sample model trend. NOTE: These confidence bands are reminiscent of our sampling distribution simulations which produced a range of model trends.    
+```{r}
+ggplot(brain, aes(x = Height, y = MRICount)) + 
+  geom_point() + 
+  geom_smooth(method = "lm")
+```
+The smallest slope is still positive.
+
+
+\
+\
+
+
+
+## Exercise 3: Statistical vs meaningful significance
+
+Above, you should've concluded that there's a statistically significant relationship between brain size and height. Based on the plot of the data, does it appear that the magnitude of this relationship is also meaningfully significant?
+
+We don't have enough context to talk about meaningful significance.
+        
+
+
+
+\
+\
+
+
+## Exercise 4: Model prediction
+
+Consider using the sample model to predict brain size by height.  There are 2 types of predictions we can make for, say, a height of 72 inches (6 feet):    
+
+- Predict the *average* brain size of *all* people that are 72 inches tall.
+- Predict the brain size of "*Jo*", a *specific* person that's 72 inches tall.
+
+The values of the two predictions are the same:
+
+`MRICount = 175332 + 10690*72 = 945012 pixels`
+
+However, *the potential error in these predictions differs.* Check in with your intuition: Is there more *error* in trying to predict the average brain size of all people that are 72 inches tall, or the brain size of Jo, a particular person that's 72 inches tall? Explain your reasoning.   
+    
+It's more possible that Jo's brain is an outlier than the average person, so theirs has the biggest average brain size error.
+\
+\
+
+
+
+
+## Exercise 5: Confidence intervals & confidence bands    
+    
+a. Check your intuition. Calculate and report the 95% *confidence interval* for the *average* brain size of *all* people that are 72 inches tall:
+
+```{r}
+predict(brain_mod_1, newdata = data.frame(Height = 72),
+  interval = "confidence", level = 0.95)
+```
+    
+    NOTE: `fit` is the prediction (which due to rounding is slightly different than our "by hand" prediction), `lwr` gives the lower bound of the CI, and `upr` gives the upper bound of the CI.    
+
+
+
+b. What's the best interpretation of this interval?    
+    - Among all 72 inch tall people in the population, we're 95% confident that the mean brain size is in this interval.    
+    
+c. We can visualize the confidence interval for the average brain size of all people at *any* common `Height` (not just 72 inches) by drawing **confidence bands** around the model. The vertical line drawn at a `Height` of 72 inches reflects the interval you calculated above. NOTE: What have we changed in the syntax?    
+```{r}
+ggplot(brain, aes(x = Height, y = MRICount)) + 
+  geom_point() + 
+  geom_smooth(method = "lm") + 
+  geom_segment(aes(x = 72, xend = 72, y = 918578, yend = 971448.3))
+```   
+ 
+
+\
+\
+
+
+
+
+## Exercise 6: Prediction intervals
+
+
+a. Calculate and report the 95% **prediction interval (PI)** for the brain size of Jo, a *specific* person that's 72 inches tall. NOTE: What changed in the syntax?
+
+```{r}
+predict(brain_mod_1, newdata = data.frame(Height = 72),
+  interval = "prediction", level = 0.95)
+```
+
+b. How can we interpret this interval?    
+    - Among all 72 inch tall people in the population, we're 95% confident that the mean brain size is in this interval.    
+
+
+\
+\
+
+
+
+## Exercise 7: Prediction vs confidence bands
+
+We can visualize the prediction interval for the brain size of a person at *any* `Height` by drawing **prediction bands**. This requires some messy syntax:    
+
+```{r}
+# Calculate and store prediction intervals for every Height value
+pred_int_1 <- data.frame(brain, predict(brain_mod_1, 
+  newdata = data.frame(Height = brain$Height), 
+  interval = 'prediction'))
+
+head(pred_int_1)
+
+# Plot regression line with prediction bands
+ggplot(pred_int_1, aes(x = Height, y = MRICount)) + 
+  geom_point() + 
+  geom_smooth(method = 'lm', color = "black") + 
+  geom_ribbon(aes(y = fit, ymin = lwr, ymax = upr, fill = 'prediction'), alpha = 0.2)
+```    
+    
+    
+a. Do the confidence bands (gray) capture the uncertainty of the AVERAGE TREND or the uncertainty of the INDIVIDUAL BEHAVIOR?    
+
+The average trend.
+
+b. Do the prediction bands (pink) capture the uncertainty of the AVERAGE TREND or the uncertainty of the INDIVIDUAL BEHAVIOR?
+
+Individual behavior.
+
+c. Which are wider, intervals for the average brain size of all people of a common height OR the interval for the brain size of a specific person at that height? **Explain why this makes intuitive sense.**
+
+Specific people, because those are the dots with the large deviation from the trend line.
+    
+\
+\
+
+
+
+## Exercise 8: Narrowing
+
+Though it's not as noticeable with the prediction bands, these and the confidence bands are always the most narrow at the same point -- in this case at a height of 68.42105 inches. What other meaning does this value have? Provide some proof and explain why it makes intuitive sense that the bands are narrowest at this point.
+
+
+This is likely the average height, or the place where there is the highest density of samples. This would cause every metric to narrow because there is more data at this point.
+
+
+\
+\
+
+
+
+## Exercise 9: Optional extra practice
+
+
+Repeat this analysis for a model of brain size by verbal IQ score (`VIQ`):    
+
+```{r}
+brain_mod_2 <- lm(MRICount ~ VIQ, data = brain)
+summary(brain_mod_2)$coefficients
+```
+    
+a. Construct and interpret a 95% confidence interval for the `VIQ` coefficient two ways: using a CLT approach and using `confint()`.
+
+
+b. What do you conclude about the relationship between verbal IQ score and brain size? Do you have enough evidence to conclude that there's a "significant" association between these 2 variables?
+
+
+c. Finally, construct and examine confidence and prediction bands for the model of brain size by VIQ.
+
+
+
+\
+\
+\
+\
+
+
+
+
+
+## Optional: looking ahead
+
+
+Re-examine the second model table:
+
+```{r}
+brain_mod_2 <- lm(MRICount ~ VIQ, data = brain)
+summary(brain_mod_2)$coefficients
+```
+
+We've learned about the `Estimate` and `Std. Error` columns. What about the other two?
+
+- Check out the number in the `t value` value column.    
+    - How can this be calculated from the `Estimate` and `Std. Error` columns?
+    - Thus how can we interpret the `t value` for the `VIQ` coefficient? HINT: Subtract 0 in the numerator of your calculation (which doesn't do anything mathematically, but helps with interpretation).
+    
+- Check out the number in the `Pr(>|t|)` column for the `VIQ` coefficient: 0.06699. This is a **probability**. What's it the probability of? HINT: This plays off of the `t value`.
+
+
+
+
+
+\
+\
+\
+\
+
