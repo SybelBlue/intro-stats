@@ -10,37 +10,68 @@ library(ggplot2)
 
 library(dplyr)
 library(magrittr)
-
-library(rattle)
 ```
 
 
 ```{r}
-data(weatherAUS)
+raw_survey_data <- read.csv("https://www.macalester.edu/~ajohns24/data/pulse_of_the_nation.csv")
 
-weatherAUS %>%
-  head(5)
+names(raw_survey_data) <- c("income", "gender", "age", "party", "trump_approval", "education", "marital", "robots", "climate_change", "transformers", "science_is_honest", "vaccines_are_safe", "books", "ghosts", "fed_sci_budget", "earth_sun", "wise_unwise")
+
+raw_survey_data <- raw_survey_data %>% 
+  mutate(climate_change_binary = (climate_change == "Real and Caused by People"))
+
+head(raw_survey_data)
+```
+
+
+  variable |	survey questions
+  ---------+-----------------
+  `income` |	What is your income (in $1000s per year)?
+  `gender` |	What gender do you identify with (female, male, other)?
+  `age` |	What is your age?
+  `party` |	In politics today, do you consider yourself a Democrat, a Republican, or Independent?
+  `trump_approval` |	Do you approve, disapprove, or neither approve nor disapprove of how Donald Trump is handling his job as president?
+  `education` |	What is your highest level of education?
+  `marital` |	What is your marital status?
+  `robots` |	What would you say is the likelihood that your current job will be entirely performed by robots or computers within the next decade?
+  `climate_change` |	Do you believe that climate change is real and caused by people, real but not caused by people, or not real at all?
+   `climate_change_binary` | Do you believe that climate change is real and caused by people or not?
+  `transformers` |	How many Transformers movies have you seen?
+  `science_is_honest` |	Do you agree or disagree with the following statement: scientists are generally honest and are serving the public good.
+  `vaccines_are_safe` |	Do you agree or disagree with the following statement: vaccines are safe and protect children from disease.
+  `books` |	How many books, if any, have you read in the past year?
+  `ghosts` |	Do you believe in ghosts?
+  `fed_sci_budget` |	Is federal funding of scientific research too high, too low, or about right?
+  `earth_sun` |	True or false: the earth is always farther away from the sun in the winter than in the summer (in the northern hemisphere).
+  `wise_unwise` |	If you had to choose: would you rather be wise and unhappy, or unwise and happy?
+  
+```{r}
+is.known <- function (x) { x != "DK/REF" }
+marital_trump <- raw_survey_data %>%
+  select(age, gender, marital, trump_approval, books) %>%
+  filter(is.known(trump_approval), is.known(marital), is.finite(age)) %>%
+  mutate(approves_trump = endsWith(trump_approval, "Approve")) %>%
+  mutate(is_married = marital == "Married")
 ```
 
 ``` {r}
-weatherAUS %>%
-  select(Location) %>%
-  unique
+marital_model <- glm(approves_trump ~ age * is_married, marital_trump, family = "binomial")
+summary(marital_model)$coefficients
 
-weatherAUS %>%
-  ggplot(aes(x = Location)) +
-  geom_histogram(stat = "count")
+marital_predictions <- marital_trump %>% 
+  mutate(probability = marital_model$fitted.values) %>% 
+  mutate(odds = probability / (1-probability)) %>% 
+  mutate(log_odds = log(odds))
+
+ggplot(marital_predictions, aes(x = age, y = probability, color = is_married)) + 
+  geom_smooth(se = FALSE) +
+  xlim(18, 88)
 ```
 
-
+  
 ```{r}
-rainy_simple <- weatherAUS %>% 
-  filter(RainToday != "NA", RainTomorrow != "NA", Pressure3pm != "NA") %>%
-  select(RainToday, RainTomorrow, Pressure3pm)
-
-rainy_simple %>%
-  ggplot(aes(color = RainTomorrow, x = Pressure3pm)) +
-  geom_histogram(stat = "count", bins=30) +
-  facet_wrap(~RainToday)
+ggplot(marital_trump, aes(x = age, color = approves_trump)) +
+  geom_boxplot() +
+  facet_wrap(~is_married)
 ```
-
