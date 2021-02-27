@@ -1,0 +1,176 @@
+---
+title: "Homework 5"
+author: Logan Caraco
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+
+\
+\
+
+``` {r, message = FALSE, warning = FALSE}
+library(ggplot2)
+library(dplyr)
+library(magrittr)
+
+# Load the package
+library(fivethirtyeight)
+
+# Load the data
+data("candy_rankings")
+```
+
+
+# Exercise 1
+
+```{r}
+# What's the average winpercent across all candies?
+candy_rankings %>%
+  select(winpercent) %>%
+  summarize(mean(winpercent))
+
+# What's the average winpercent among chocolate vs non-chocolate candies?
+candy_rankings %>%
+  group_by(chocolate) %>%
+  select(winpercent) %>%
+  summarize(mean(winpercent))
+
+# What's the average winpercent among candies that have both chocolate & caramel?
+candy_rankings %>%
+  filter(chocolate, caramel) %>%
+  select(winpercent) %>%
+  summarize(mean(winpercent))
+
+# What are the 6 most popular candies? 
+# (Show just the candy names & winpercent)
+candy_rankings %>%
+  arrange(desc(winpercent)) %>%
+  select(competitorname, winpercent) %>%
+  head(6)
+
+# What are the 6 least popular candies? 
+# (Show just the candy names & winpercent)
+candy_rankings %>%
+  arrange(winpercent) %>%
+  select(competitorname, winpercent) %>%
+  head(6)
+
+# What are the 6 most popular fruity candies?
+# (Show just the candy names & winpercent)
+candy_rankings %>%
+  filter(fruity) %>%
+  arrange(desc(winpercent)) %>%
+  select(competitorname, winpercent) %>%
+  head(6)
+```
+
+\
+\
+
+
+# Exercise 2
+
+## Part a
+
+``` {r}
+candy_rankings %>%
+  ggplot(aes(x = fruity, y = winpercent, color = hard)) +
+  geom_boxplot()
+```
+
+## Part b
+
+``` {r}
+candy_model_1 <- lm(winpercent ~ fruity + hard, candy_rankings)
+summary(candy_model_1)$coefficients
+```
+
+## Part c
+
+\[-9.015980 \pm 2 * 3.203994 \approx (-15.4, -2.6)\]
+
+```{r}
+confint(candy_model_1)
+```
+
+## Part d
+It is very likely that fruitiness decreases odds of winning a match-up in the model.
+
+## Part e
+What conclusion can we make from this CI: when controlling for whether or not a candy is hard…
+**fruity candy tends to be significantly less popular than non-fruity candy.**
+
+
+# Exercise 3
+
+```{r}
+candy_rankings %<>% 
+  mutate(pricepercent = 100*pricepercent)
+```
+
+## Part a
+```{r}
+candy_rankings %>%
+  ggplot(aes(x = pricepercent, y = winpercent)) +
+  geom_jitter() +
+  ylim(0, 100)
+```
+
+## Part b
+Probably not, there appears to be an almost perfectly horizontal line.
+
+## Part c
+Probably not, there appear to be a full array of `winpercent` at each cluster of `pricepercent`.
+
+
+# Exercise 4
+
+## Part a
+```{r}
+candy_model_2 <- lm(winpercent ~ pricepercent, candy_rankings)
+summary(candy_model_2)$coefficients
+```
+
+## Part b
+
+```{r}
+summary(candy_model_2)$r.squared
+```
+
+With such a low r-squared, this is a terrible model.
+
+## Part c
+
+```{r}
+candy_rankings %>%
+  select(competitorname, pricepercent, winpercent) %>%
+  # arrange first by distance from median price, then by popularity
+  arrange(abs(pricepercent - 50), desc(winpercent)) %>%
+  head(3)
+
+predict(candy_model_2, data.frame(pricepercent = 51.1), interval="predict") 
+```
+
+# Exercise 5
+## Part a
+\[H_0: \beta_1 = 0\]
+\[H_a: \beta_1 > 0\]
+
+## Part b
+```{r}
+summary(candy_model_2)$coefficients
+(0.1778277 - 0) / 0.05304668
+```
+
+## Part c
+```{r}
+1.208829e-03 / 2
+```
+
+It is unlikely that this positive correlation was observed by chance (much less than 0.1%).
+
+## Part d
+We reject the null hypothesis. There appears to be a very slight positive correlation between price and popularity.
