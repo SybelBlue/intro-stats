@@ -5,6 +5,11 @@ date: "2/16/2021"
 output: html_document
 ---
 
+```{r setup, echo = FALSE, warning = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, warning = FALSE, message = FALSE, fig.align = 'center')
+```
+
+
 ```{r, message=FALSE}
 library(ggplot2)
 
@@ -50,21 +55,33 @@ head(raw_survey_data)
 is.known <- function (x) { x != "DK/REF" }
 marital_trump <- raw_survey_data %>%
   select(age, gender, marital, trump_approval, books) %>%
-  filter(is.known(trump_approval), is.known(marital), is.finite(age)) %>%
+  filter(is.known(trump_approval), is.known(marital), is.finite(age), 18 <= age, age <= 90) %>%
   mutate(approves_trump = endsWith(trump_approval, "Approve")) %>%
   mutate(is_married = marital == "Married")
 ```
 
 ``` {r}
-marital_model <- glm(approves_trump ~ age * is_married, marital_trump, family = "binomial")
+approval_model <- glm(approves_trump ~ age * is_married, marital_trump, family = "binomial")
+summary(approval_model)$coefficients
+
+approval_predictions <- marital_trump %>% 
+  mutate(log_odds = approval_model$fitted.values) %>% 
+  mutate(odds = exp(log_odds)) %>% 
+  mutate(probability = odds / (1 + odds))
+```
+
+``` {r}
+marital_model <- glm(is_married ~ age, marital_trump, family = "binomial")
 summary(marital_model)$coefficients
 
 marital_predictions <- marital_trump %>% 
-  mutate(probability = marital_model$fitted.values) %>% 
-  mutate(odds = probability / (1-probability)) %>% 
-  mutate(log_odds = log(odds))
+  mutate(log_odds = marital_model$fitted.values) %>% 
+  mutate(odds = exp(log_odds)) %>% 
+  mutate(probability = odds / (1 + odds))
+```
 
-ggplot(marital_predictions, aes(x = age, y = probability, color = is_married)) + 
+``` {r}
+ggplot(approval_predictions, aes(x = age, y = probability, color = is_married)) + 
   geom_smooth(se = FALSE) +
   xlim(18, 88)
 ```
@@ -74,4 +91,12 @@ ggplot(marital_predictions, aes(x = age, y = probability, color = is_married)) +
 ggplot(marital_trump, aes(x = age, color = approves_trump)) +
   geom_boxplot() +
   facet_wrap(~is_married)
+```
+
+```{r}
+confint(approval_model, level = 0.95)
+
+ggplot(approval_predictions, aes(x = age, y = probability, color = is_married)) +
+  geom_smooth(method = "lm") +
+  xlim(18, 88)
 ```
