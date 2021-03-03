@@ -1,0 +1,398 @@
+# Intro to hypothesis testing
+
+
+
+
+
+\
+\
+
+
+
+## Getting started
+
+
+\
+
+
+**The whole point**    
+
+- we can use sample data to estimate features of the population
+
+- there's error in this estimation
+
+- taking this error into account, what exactly can we conclude about the population?
+
+
+
+\
+\
+
+
+```{r message = FALSE, warning = FALSE}
+# Load packages
+library(ggplot2)
+library(dplyr)
+
+# Load the data
+CPS_2018 <- read.csv("https://www.macalester.edu/~ajohns24/data/CPS_2018.csv") %>% 
+  filter(age <= 25)
+```
+
+
+
+
+
+\
+\
+
+
+
+
+## Exercises    
+
+
+
+Let's start by exploring a small *population* model of wages by marital status among 18-25 year olds:  
+    
+$$\text{wage} = \beta_0 + \beta_1 \text{ maritalsingle}$$
+
+where $\beta_0$ and $\beta_1$ are unknown population coefficients.  (After all, we don't know the wages & marital status of everybody in the labor force!)  A researcher states the following hypotheses:  
+
+$$\begin{split}
+H_0: & \;\; \beta_1 = 0 \\
+H_a: & \;\; \beta_1 < 0 \\
+\end{split}$$
+
+
+\
+
+
+    
+## Exercise 1. STEP 1: specify the hypothesis
+
+Which of these multiple choice options provides the correct interpretation of the hypotheses?    
+- $H_0:$ There's no difference in the average wages of married and single workers.    
+    $H_a$: On average, single workers have smaller wages than married workers.    
+
+
+
+\
+\
+
+
+
+
+## Exercise 2. STEP 2: Compare our sample estimate to $H_0$
+    
+Using our sample data, we can *estimate* the model of wages by marital status:   
+
+```{r}
+wage_mod_1 <- lm(wage ~ marital, data = CPS_2018)
+coef(summary(wage_mod_1))
+```
+
+a. Review: interpret our sample estimate of $\beta_1$, $\hat{\beta}_1 = -12968.99$, and its corresponding standard error.
+
+  Single people make $\$12968.99 \pm 2 * 4325.06$ less than married people.
+
+
+b. Innocent until proven guilty:    
+    What $\hat{\beta}_1$ estimates would we expect to see if $H_0$ were true (ie. if $\beta_1$ were actually 0)? On a piece of paper, sketch the sampling distribution of all possible $\hat{\beta}_1$ under the null hypothesis. Make sure to provide a sense of scale using the 68-95-99.7 Rule.
+    
+  It is very unlikely that we are consistent with null hypothesis, z-score approx -3.
+
+
+c. On your sketch from part b, mark where our sample estimate ($\hat{\beta}_1 = -12968.99$) falls. Based on this observation alone, is our sample estimate consistent with $H_0$? 
+    
+  Probably not.
+  
+\
+\
+
+
+## Exercise 3. STEP 2: Compare our sample estimate to $H_0$ using a test statistic
+
+Recall that the test statistic provides one measure of the compatibility of our sample estimate with $H_0$. Report and *interpret* the test statistic for our hypothesis test. For practice, both calculate this value "by hand" and find it in your model summary table.
+
+``` {r}
+-12968.99 / 4325.057 
+```
+
+ -2.998570
+
+\
+\
+
+
+
+
+## Exercise 4. STEP 2: Compare our sample estimate to $H_0$ using a p-value
+
+The p-value provides another measure of the compatibility of our sample estimate with $H_0$. 
+
+a. Use the 68-95-99.7 Rule with your sketch from exercise 2 to approximate the p-value.    
+About .005.
+
+b. Calculate a more accurate p-value from the model `summary()`.  Don't forget to divide by 2!      
+
+```{r}
+2.765861e-03 / 2
+```
+
+
+c. MULTIPLE CHOICE: How can we interpret the p-value?    
+    i. **It's unlikely that we'd have observed such a steep decrease in wages for our sampled single people "by chance" (i.e. if in fact there were no relationship between wages and marriage status).**
+    ii. It's unlikely that single people have lower wages than married people.    
+    iii. It's unlikely that there's no association between wages and marriage status.    
+
+
+\
+\
+
+
+
+
+## Exercise 5. STEP 3: Conclusion
+
+What do you conclude about the hypotheses...    
+
+a. Is there a statistically significant association between wages and marital status? Explain.
+
+There is a statistically significant association. It is reasonable to assume wages would fall on a bell curve, and it is highly unlikely that we observed this value by chance.
+
+b. *Statistical* significance would merely indicate that a marriage effect is *present*.   Consider an important follow-up question: what's the *magnitude* of this effect and is this *meaningful*, ie. *practically significant*?  
+
+
+Yes, it is meaningful, on the order of thousands if not tens of thousands of dollars.
+    
+    
+    
+\
+\
+\
+
+
+
+
+---
+
+
+**You just did a "Two Sample t-Test"!**
+
+The hypothesis test above essentially compared two population means: the mean wage of single people and the mean wage of married people.  This is known as a *two sample t-test*.  "Two" sample because we're comparing *two* means.  
+
+---
+
+
+
+
+\
+\
+\
+\
+
+
+
+
+## Exercise 6: A hypothesis test for $\beta_0$
+    
+We can also test hypotheses about model intercepts but, for reasons you'll see here, these aren't usually helpful.  For example, in the population model $\text{wage} = \beta_0 + \beta_1\text{ maritalsingle}$ we can test:    
+
+$$\begin{split}
+H_0: & \;\; \beta_0 = 0 \\
+H_a: & \;\; \beta_0 \ne 0 \\
+\end{split}$$
+
+We see in the model `summary()` above that the p-value for this hypothesis test is miniscule ($2.18 * 10^{-17}$).  Keeping in mind the meaning of the $\beta_0$ coefficient, what do you conclude?    
+
+i. We have statistically significant evidence of a relationship between wages and marriage status.    
+
+ii. We have statistically significant evidence that there's no relationship between wages and marriage status.    
+
+iii. We have statistically significant evidence that the average wage of single workers is non-0.    
+
+iv. **We have statistically significant evidence that the average wage of married workers is non-0.**    
+
+    
+    
+    
+\
+\
+
+
+
+
+
+---
+
+**You just did a "One Sample t-Test"!**
+
+The hypothesis test above essentially compared one population mean (the mean wage of single people) to a hypothesized value (in this case, 0).  This is comparable to / a special case of a **one sample t-test**.
+
+---
+
+
+
+\
+\
+\
+\
+\
+\
+\
+\
+
+
+
+
+
+## Exercise 7: Controlling for age
+
+Since we haven't controlled for important covariates, we should be wary of using the above result to argue that there's wage discrimination against single people. To this end, consider the relationship between wages and marriage status when controlling for age:    
+
+$$\text{wage} = \beta_0 + \beta_1\text{ maritalsingle} + \beta_2\text{ 
+age}$$
+
+We're interested in the following hypotheses:  
+
+$$\begin{split}
+H_0:& \;\; \beta_1 = 0 \\
+H_a:& \;\; \beta_1 < 0 \\
+\end{split}$$
+
+To this end, check out our sample model:
+
+```{r}
+# Construct a sample model
+wage_mod_2 <- lm(wage ~ marital + age, data = CPS_2018)
+coef(summary(wage_mod_2))
+```    
+
+a. Interpret the sample estimate of $\beta_1$, `-6923.449`, and its *test statistic*,  `-1.596016`.    
+
+When controlling for age, being single could have zero or positive contribution, though it is centered on roughly -7000.
+
+b. Approximate a range for this p-value using the 65-95-99.7 Rule.
+
+0.16 and 0.025
+
+c. More specifically, calculate the p-value using information from the model summary table. 
+
+```{r}
+1.107371e-01 / 2
+```
+
+d. Summarize your conclusion.    
+
+The probability we would get this data randomly is roughly 0.055.
+
+
+\
+\
+
+
+
+
+## Exercise 8: Comparing `wage_mod_1` and `wage_mod_2`
+
+Explain the main difference between your conclusions regarding wages and marriage status from `wage_mod_1` and `wage_mod_2`.  NOTE: Don't just say that one is significant and the other is not. Explain why this makes intuitive sense.
+
+`wage_mod_2` demonstrates that age is a significant factor, and when controlling for age, marriage is not a significant factor.
+
+\
+\
+
+
+
+## Exercise 9: Interaction?
+
+In some cases, our research questions define what model we should construct. For example, we built `wage_mod_2` because we wanted to explore the relationship between wages and marital status while controlling for age. 
+
+In other cases, hypothesis tests can help us hone a model. For example, should we have included an interaction term in `wage_mod_2`? Build a new model and conduct a new hypothesis test that helps you answer this question.
+
+```{r}
+# Construct a sample model
+wage_mod_3 <- lm(wage ~ marital * age, data = CPS_2018)
+coef(summary(wage_mod_3))
+```     
+    
+It is not unlikely that we observed everything by chance.
+
+
+\
+\
+
+
+
+
+## Exercise 10: Apply these ideas to your project
+
+With the ideas of confidence intervals and hypothesis testing fresh in your mind, revisit one or more of the models you've tried for your project. What conclusions can you make?
+
+
+
+\
+\
+\
+\
+\
+\
+\
+\
+
+
+
+## Reflection
+
+**Hypothesis "t"-Tests for Model coefficients**
+
+Consider a population model of response variable $y$ by explanatory terms $x_1$, $x_2$, and $x_3$: $$y = \beta_0 + \beta_1x_1 + \beta_2x_2 + \beta_3x_3$$ where population coefficients $\beta_0, \beta_1, \beta_2, \beta_3$ are unknown.  Then the p-value given in the last column of the $x_1$ row in the model summary table corresponds to the following test: 
+
+$$\begin{split}
+H_0: &  \; \beta_1 = 0 \\
+H_a: &  \; \beta_1 \ne 0 \\ 
+\end{split}$$
+
+
+In words:    
+
+- $H_0$ represents "no $x_1$ effect", i.e. when controlling for $x_2$ and $x_3$ there's no significant relationship between $x_1$ and $y$.    
+
+- $H_a$ represents an "$x_1$ effect", i.e. even when controlling for $x_2$ and $x_3$ there's a significant relationship between $x_1$ and $y$.  
+
+\
+
+Note: We typically test a one-sided alternative $H_a: \beta_1 < 0$ or $H_a: \beta_1 > 0$.  In this case, we divide the reported p-value by 2.    
+
+
+
+
+
+
+
+\
+\
+\
+\
+
+
+
+
+
+**A Survey of Hypothesis Tests**
+
+Though we can use confidence intervals to answer such inferential questions, **hypothesis tests** provide a formal framework.  There are countless types of hypothesis tests. The following are a few that we might see in the next few weeks.  Though they differ in their goals, their structure is the same!
+
+\
+
+Test Name                       Population quantities of interest       Example
+------------------------------- --------------------------------------- --------------------------------------------------------------------
+t-tests for model coefficients  model coefficients                      When controlling for job sector, is education associated with wage?
+ANOVA                           multiple model coefficients             With all categories combined, is job sector associated with wage?
+one sample t-test               1 mean                                  Is the mean Mac IQ > 100?
+two sample t-test               2 independent means                     Is the mean Mac IQ > mean UMN IQ?
+ANOVA                           2^+^ independent means
+paired t-test                   2 *paired* means                        Is mean cholesterol pre-drug > mean post-drug?
+
+

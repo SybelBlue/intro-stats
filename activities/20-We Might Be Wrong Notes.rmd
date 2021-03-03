@@ -1,0 +1,509 @@
+# We might be wrong
+
+\
+\
+
+
+
+**The whole point**    
+
+- we can use sample data to estimate features of the population
+
+- there's error in this estimation
+
+- taking this error into account, we want to make some sort of conclusion about the population
+
+- there is some **gray area** in this conclusion and **we might be wrong**
+
+
+
+\
+\
+\
+\
+
+
+
+
+**WARM-UP**
+
+
+What can we conclude about the association of mountain climber success with age & oxygen use?
+
+```{r}
+climbers_sub <- read.csv("https://www.macalester.edu/~ajohns24/data/climbers_sub.csv")
+climb_model <- glm(success ~ age + oxygen_used, climbers_sub, family = "binomial")
+summary(climb_model)$coefficients
+confint(climb_model)
+exp(confint(climb_model))
+```
+
+
+
+
+
+
+
+\
+\
+\
+\
+
+
+
+
+
+
+**We might be wrong**    
+
+Some samples are "lucky" and some aren't. This can lead to errors in hypothesis testing & confidence intervals. **NOTE:** "Error" doesn't mean we did anything wrong - it means that we got unlucky data which led to an incorrect conclusion.
+
+\
+
+                                     $H_0$ true                          $H_0$ not true
+------------------------------------ ----------------------------------- -----------------------------------
+conclude results aren't significant  Correct!                            **Type II Error** (false negative)
+conclude results are significant     **Type I Error** (false positive)   Correct!
+
+
+
+
+
+
+
+
+
+\
+\
+\
+\
+
+
+
+
+
+**EXAMPLE**    
+
+a. In the case of a radon detector, what's a Type I error? What's a Type II error?    
+    
+    $H_0$: there is *no* radon    
+    $H_a$: there *is* radon
+
+b. Errors have consequences. In the example from part a, which is the "worse" error to make?    
+
+c. What about in the scenario of ...   
+
+    $H_0$: innocent    
+    $H_a$: guilty
+    
+
+
+
+
+
+
+\
+\
+\
+\
+
+
+
+
+
+
+
+## Getting Started
+
+To better understand **how often** and **why** we get Type I or Type II errors, we'll *simulate* a study of the relationship between a person's typing words per minute (wpm) and the number of hours they slept on the previous night:    
+    
+$$\text{wpm} = \beta_0 + \beta_1 \text{ hours_sleep}$$    
+
+We're interested in testing:    
+
+- $H_0: \; \beta_1 = 0$ (no relationship between wpm and sleep)    
+- $H_a: \; \beta_1 > 0$ (wpm tends to increase with sleep)    
+  
+
+\
+
+Load some packages and define a function specialized to this activity:
+
+
+```{r message = FALSE, warning = FALSE}
+# Load packages
+library(dplyr)
+library(ggplot2)
+library(infer)
+library(broom)
+
+# Function for simulating hypothesis tests
+error_simulation <- function(effect_size, resid_sd, sample_size, reps = FALSE){
+  if(reps == FALSE){
+    wpm_data <- data.frame(hours_sleep = rnorm(sample_size, mean = 6, sd = 1)) %>% 
+        mutate(wpm = rnorm(sample_size, mean = 0 + effect_size*hours_sleep, sd = resid_sd)) %>% 
+        mutate(wpm = (wpm - mean(wpm) + 40))
+    g <- ggplot(wpm_data, aes(x = hours_sleep, y = wpm)) + 
+      geom_point() + 
+      geom_smooth(method = "lm", se = FALSE)
+  }
+  if(reps == TRUE){
+    wpm_data <- data.frame(hours_sleep = rnorm(100*sample_size, mean = 6, sd = 1)) %>% 
+      mutate(wpm = rnorm(100*sample_size, mean = 0 + effect_size*hours_sleep, sd = resid_sd)) %>% 
+      mutate(wpm = (wpm - mean(wpm) + 40)) %>% 
+      mutate(replicate = rep(c(1:100), each = sample_size))
+        
+    sleep_ps <- wpm_data %>% 
+      group_by(replicate) %>% 
+      do(lm(wpm ~ hours_sleep, data = .) %>% tidy) %>% 
+      filter(term == "hours_sleep") %>% 
+      mutate(significant = (p.value < 0.05 & estimate > 0)) %>% 
+      mutate(error = ((significant == TRUE) & (effect_size == 0)) | ((significant == FALSE) & (effect_size != 0))) %>% 
+      select(replicate, significant, estimate, error)
+  
+    wpm_data <- left_join(wpm_data, sleep_ps)
+    g <- ggplot(wpm_data, aes(x = hours_sleep, y = wpm, group = replicate, color = error)) + 
+      geom_smooth(method = "lm", se = FALSE) + 
+      labs(title = paste("Percent errors = ", sum(sleep_ps$error))) + 
+      theme(legend.position = "none") + 
+      scale_color_manual(values=c("gray", "red"))
+  }
+  g
+}
+```
+
+
+
+
+
+
+\
+\
+\
+\
+
+
+
+## Exercises
+
+
+\
+
+
+## Exercise 1: Type I vs Type II
+
+In the context of our wpm vs sleep hypotheses, which of the following would be a Type I error? A Type II error?    
+
+- conclude there's *not* a significant relationship between sleep and wpm when there actually *is*
+
+- conclude there *is* a significant relationship between sleep and wpm when there actually *isn't*
+    
+
+
+\
+\
+
+
+
+## Exercise 2: Type I error rate
+
+When using a 0.05 significance level, a Type I error would occur if there actually were no association between wpm and sleep ($H_0$ were true), *but* we happened to get a sample that exhibited a significant association (p-value < 0.05). How likely is this to happen?    
+
+a. Run the following chunk several times to see what our sample model might look like if we collected data on a `sample_size` of 25 people in a world where $H_0$ were true, ie. the true `effect_size` $\beta_1$ were 0:    
+    ```{r}
+    # Run the chunk several times!    
+    error_simulation(effect_size = 0, resid_sd = 5, sample_size = 25, reps = FALSE)
+    ```    
+    
+b. Take *100* different samples of 25 people and plot the results. The Type I errors are highlighted in red and the overall error percent is noted at the top.    
+    ```{r}
+    # Run the chunk several times!    
+    error_simulation(effect_size = 0, resid_sd = 5, sample_size = 25, reps = TRUE)
+    ```    
+    
+c. After running the chunk in part b several times, what do you think is the probability of making a Type I error?
+
+d. Challenge: Verify this answer using the CLT. Think: When assuming $H_0$ is true, the sampling distribution of our possible slope estimates $\hat{\beta}_1$ is centered at 0. What proportion of all possible estimates would lead to a p-value < 0.05, hence a Type I error?
+    
+    
+
+\
+\
+
+
+
+## Exercise 3: We control Type I error rates
+
+In the above exercise, you found that when using a 0.05 significance level, there's a 5% chance of making a Type I error. Similarly, a 0.10 significance level would lead to a 10% chance of making a Type I error. Thus *we* control the possibility of a Type I error through our *chosen* significance level (eg: 0.05). We should make that choice based on the consequences of a Type I error.    
+
+a. In the radon hypothesis test ($H_0$: no radon vs $H_a$: radon), what significance level would you use and why?    
+
+b. What about in the innocent vs guilty test ($H_0$: innocent vs $H_a$: guilty)?
+
+```{r}
+
+```
+
+
+\
+\
+
+
+
+## Exercise 4: Type II error rate
+
+A Type II error would occur if wpm actually *does* tend to increase with sleep ($H_0$ were false), but our sample data weren't strong enough to detect this phenomenon (p-value > 0.05). We have less control over Type II errors than we have over Type I errors and they depend upon various dynamics. Let's consider some cases. Case 1:    
+
+- **Effect size: $\beta_1 = 5$**    
+    wpm tends to increase by 5 for every extra hour of sleep    
+
+- **Strength of relationship: moderate**    
+    the typical person's wpm is 7 from the trend    
+  
+- **Sample size: 25 people**
+
+
+a. Run the following chunk a few times to understand what data we might see in this scenario:    
+    ```{r}
+    # Run this chunk a few times
+    error_simulation(effect_size = 5, resid_sd = 7, sample_size = 25, reps = FALSE)
+    ```    
+    
+    
+b. Repeat 100 times. The red lines represent Type II errors. Roughly, what percent of samples lead to Type II errors, ie. data that's too weak to produce significant results?    
+    ```{r}
+    # Run this chunk a few times
+    error_simulation(effect_size = 5, resid_sd = 7, sample_size = 25, reps = TRUE)
+    ```    
+   
+    
+c. In contrast, roughly what percent of samples produce (correctly) significant results? This is the **power** of our hypothesis test. NOTE: It's tough to calculate this exactly, so just give a ballpark.  
+
+
+  
+\
+\
+\
+
+
+
+---
+
+**DEFINITION: power**    
+
+The power of a test is the probability it detects a present effect, ie. it correctly detects statistical significance when $H_0$ is false. Thus 
+
+power = 1 - probability of a Type II error
+
+---
+
+
+
+\
+\
+\
+
+
+
+## Exercise 5: Play around
+
+In the exercises below, you'll be guided through various aspects that might impact the *power* and *Type II error rate* of a hypothesis test. First, spend a few minutes playing around and testing your intuition. How might you change up the non-zero `effect_size`, `resid_sd`, and `sample_size` in ways that increase the power (hence decrease the Type II error rate) of your analysis?
+
+```{r eval = FALSE}
+# HINT CODE. do not change. type in the chunk below
+error_simulation(effect_size = ___, resid_sd = ___, sample_size = ___, reps = TRUE)
+```  
+
+```{r}
+
+```
+
+    
+    
+    
+\
+\
+
+
+
+## Exercise 6: Impact of sample size
+
+Consider Case 2 with the same effect size and strength as Case 1, but a bigger sample (100 vs 25):    
+
+- **Effect size: $\beta_1 = 5$**    
+    wpm tends to increase by 5 for every extra hour of sleep    
+
+- **Strength of relationship: moderate**    
+    the typical person's wpm is 7 from the trend
+
+- **Sample size: 100 people**
+
+
+a. Get a sense for the possibilities:    
+    ```{r}
+    # Run this chunk a few times
+    error_simulation(effect_size = 5, resid_sd = 7, sample_size = 100, reps = FALSE)
+    ```
+
+
+b. What does your gut say: will more data lead to higher power (lower Type II error), lower power (greater Type II error), or have no impact at all?    
+
+
+c. Check your intuition. Use the plots below to explore and summarize the impact of sample size on the power and Type II error rate of a test.       
+    ```{r}
+    # Run this chunk a few times
+    error_simulation(effect_size = 5, resid_sd = 7, sample_size = 100, reps = TRUE)
+    ```    
+        
+        
+        
+        
+
+\
+\
+
+
+
+## Exercise 7: Impact of effect size
+
+Consider Case 3 which is the same as Case 2 but with a smaller effect size (1 vs 5):    
+
+- **Effect size: $\beta_1 = 1$**    
+    wpm tends to increase by only 1 for every extra hour of sleep    
+    
+- **Strength of relationship: moderate**    
+    the typical person's wpm is 7 from the trend
+
+- **Sample size: 100 people**    
+
+
+a. Get a sense for the possibilities:    
+    ```{r}
+    # Run this chunk a few times
+    error_simulation(effect_size = 1, resid_sd = 7, sample_size = 100, reps = FALSE)
+    ```
+
+b. What does your gut say: will a smaller effect size lead to higher power, lower power, or have no impact at all?    
+
+    
+c. Check your intuition and summarize the takehome message.    
+    ```{r}
+    # Run this chunk a few times
+    error_simulation(effect_size = 1, resid_sd = 7, sample_size = 100, reps = TRUE)
+    ```    
+        
+
+
+\
+\
+
+
+
+
+
+## Exercise 8: Impact of strength
+
+Consider Case 4, the same as Case 3 except with a strong, instead of moderate, relationship:
+
+- **Effect size: $\beta_1 = 1$**    
+    wpm tends to increase by only 1 for every extra hour of sleep
+
+- **Strength of relationship: strong**    
+    the typical person's wpm is only 0.25 from the trend
+
+- **Sample size: 100 people**    
+
+a. Get a sense for the possibilities:    
+    ```{r}
+    # Run this chunk a few times
+    error_simulation(effect_size = 1, resid_sd = 0.25, sample_size = 100, reps = FALSE)
+    ```    
+
+b. What does your gut say: will a stronger relationship lead to higher power, lower power, or have no impact at all?    
+
+    
+c. Check your intuition and summarize the takehome message.    
+    ```{r}
+    # Run this chunk a few times
+    error_simulation(effect_size = 1, resid_sd = 0.25, sample_size = 100, reps = TRUE)
+    ```   
+        
+        
+
+\
+\
+
+
+
+
+## Exercise 9: Sample size calculations
+
+Researchers often perform simulations like those above to determine how much sample data they'd need to collect in order to achieve, say, 80% power (or a 20% Type II error rate) in detecting a given effect size. For example, suppose: we wished to be able to detect even a small effect of a 0.5 wpm increase per hour of sleep; we assumed a moderate relationship between wpm and sleep; and we started with a sample of only 25 people:    
+
+- **Effect size: $\beta_1 = 0.5$**    
+    wpm tends to increase by only 0.5 for every extra hour of sleep
+
+- **Strength of relationship: moderate**    
+    the typical person's wpm is 5 from the trend
+
+- **Sample size: 25 people**    
+
+a. Get a sense for the possibilities:    
+    ```{r}
+    # Run this chunk a few times
+    error_simulation(effect_size = 0.5, resid_sd = 5, sample_size = 25, reps = FALSE)
+    ```  
+    
+b. Roughly, what's the power in this scenario?
+
+c. Roughly how many people would we need to enroll in this sleep study if we wanted to achieve at least 80% power?    
+
+d. Success feels good! But did any part of this analysis raise any red flags?
+
+    
+
+    
+
+\
+\
+
+
+
+## Exercise 10: Summarize
+
+Let's summarize what we've learned.    
+
+a. Assuming we're using a 0.05 significance level, the probability of making a **Type I error** when $H_0$ is actually true is ???    
+
+b. When $H_0$ is false (ie. a relationship is present), our **power** in detecting the relationship increases when...    
+   - the effect size is LARGE    
+   - the strength of the relationship is STRONG    
+   - the sample size is LARGE    
+
+       
+  
+  
+
+\
+\
+
+
+
+## Exercise 11: Implications
+
+Check out this 1.5 minute video made by *The Economist*:  [Why most published (scientific) research is false](https://www.youtube.com/watch?v=aMv8ZNwXTjQ). What's the take-home message, what are the real world consequences, and how might we change the culture around publishing to combat this trend? (Keep in mind: When used *responsibly*, statistics and data are very powerful!)
+
+    
+
+
+\
+\
+\
+\
+
+
+
+
+
+
+    
