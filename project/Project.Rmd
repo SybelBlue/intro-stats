@@ -10,93 +10,105 @@ knitr::opts_chunk$set(collapse = TRUE, warning = FALSE, message = FALSE, fig.ali
 ```
 
 
-```{r, message=FALSE}
+```{r, echo = FALSE, message=FALSE}
 library(ggplot2)
-
 library(dplyr)
 library(magrittr)
 ```
 
 
-```{r}
+```{r Import Data, echo = FALSE}
 raw_survey_data <- read.csv("https://www.macalester.edu/~ajohns24/data/pulse_of_the_nation.csv")
 
 names(raw_survey_data) <- c("income", "gender", "age", "party", "trump_approval", "education", "marital", "robots", "climate_change", "transformers", "science_is_honest", "vaccines_are_safe", "books", "ghosts", "fed_sci_budget", "earth_sun", "wise_unwise")
 
 raw_survey_data <- raw_survey_data %>% 
   mutate(climate_change_binary = (climate_change == "Real and Caused by People"))
-
-head(raw_survey_data)
 ```
 
 
   variable |	survey questions
   ---------+-----------------
-  `income` |	What is your income (in $1000s per year)?
-  `gender` |	What gender do you identify with (female, male, other)?
   `age` |	What is your age?
-  `party` |	In politics today, do you consider yourself a Democrat, a Republican, or Independent?
   `trump_approval` |	Do you approve, disapprove, or neither approve nor disapprove of how Donald Trump is handling his job as president?
-  `education` |	What is your highest level of education?
   `marital` |	What is your marital status?
-  `robots` |	What would you say is the likelihood that your current job will be entirely performed by robots or computers within the next decade?
-  `climate_change` |	Do you believe that climate change is real and caused by people, real but not caused by people, or not real at all?
-   `climate_change_binary` | Do you believe that climate change is real and caused by people or not?
-  `transformers` |	How many Transformers movies have you seen?
-  `science_is_honest` |	Do you agree or disagree with the following statement: scientists are generally honest and are serving the public good.
-  `vaccines_are_safe` |	Do you agree or disagree with the following statement: vaccines are safe and protect children from disease.
-  `books` |	How many books, if any, have you read in the past year?
-  `ghosts` |	Do you believe in ghosts?
-  `fed_sci_budget` |	Is federal funding of scientific research too high, too low, or about right?
-  `earth_sun` |	True or false: the earth is always farther away from the sun in the winter than in the summer (in the northern hemisphere).
-  `wise_unwise` |	If you had to choose: would you rather be wise and unhappy, or unwise and happy?
-  
-```{r}
+
+```{r Filtering Functions}
 is.known <- function (x) { x != "DK/REF" }
+is.voting_age <- function (x) { 18 <= x && x <= 90 }
+```
+
+```{r Main Dataset}
 marital_trump <- raw_survey_data %>%
-  select(age, gender, marital, trump_approval, books) %>%
-  filter(is.known(trump_approval), is.known(marital), is.finite(age), 18 <= age, age <= 90) %>%
+  select(age, marital, trump_approval) %>%
+  filter(is.known(trump_approval), is.known(marital)) %>% 
+  filter(is.finite(age), is.voting_age(age)) %>%
   mutate(approves_trump = endsWith(trump_approval, "Approve")) %>%
   mutate(is_married = marital == "Married")
+```
+
+```{r Plotting Functions}
+add_predictions <- function (model) {
+  marital_trump %>% 
+    mutate(log_odds = model$fitted.values) %>% 
+    mutate(odds = exp(log_odds)) %>% 
+    mutate(probability = odds / (1 + odds))
+}
+
+plot_probability <- function(data, ast) {
+  ggplot(data, ast) + 
+    geom_smooth(se = FALSE) +
+    xlim(18, 88)
+}
 ```
 
 ``` {r}
 approval_model <- glm(approves_trump ~ age * is_married, marital_trump, family = "binomial")
 summary(approval_model)$coefficients
 
-approval_predictions <- marital_trump %>% 
-  mutate(log_odds = approval_model$fitted.values) %>% 
-  mutate(odds = exp(log_odds)) %>% 
-  mutate(probability = odds / (1 + odds))
+approval_predictions <- add_predictions(approval_model)
 ```
 
 ``` {r}
 marital_model <- glm(is_married ~ age, marital_trump, family = "binomial")
 summary(marital_model)$coefficients
 
-marital_predictions <- marital_trump %>% 
-  mutate(log_odds = marital_model$fitted.values) %>% 
-  mutate(odds = exp(log_odds)) %>% 
-  mutate(probability = odds / (1 + odds))
+marital_model %>%
+  add_predictions %>%
+  plot_probability(aes(x = age, y = probability))
 ```
 
 ``` {r}
-ggplot(approval_predictions, aes(x = age, y = probability, color = is_married)) + 
-  geom_smooth(se = FALSE) +
-  xlim(18, 88)
+approval_predictions %>%
+  plot_probability(aes(x = age, y = probability, color = is_married))
 ```
 
   
 ```{r}
 ggplot(marital_trump, aes(x = age, color = approves_trump)) +
   geom_boxplot() +
-  facet_wrap(~is_married)
+  facet_wrap(~is_married, labeller = label_both) +
+  theme(axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())
 ```
 
 ```{r}
-confint(approval_model, level = 0.95)
+confint(approval_model)
 
-ggplot(approval_predictions, aes(x = age, y = probability, color = is_married)) +
-  geom_smooth(method = "lm") +
-  xlim(18, 88)
+approval_predictions %>%
+  plot_probability(aes(x = age, y = probability, color = is_married)) +
+  geom_jitter()
 ```
+
+
+```{r}
+age_approval <- glm(approves_trump ~ age, marital_trump, family = "binomial")
+summary(age_approval)$coefficients
+confint(age_approval)
+
+age_approval %>%
+  add_predictions %>%
+  plot_probability(aes(x = age, y = probability))
+```
+
+
