@@ -95,6 +95,7 @@ The following are great ways to continue playing around with data:
 # Load packages
 library(ggplot2)
 library(dplyr)
+library(magrittr)
 
 # Import data on flights
 flights <- read.csv("https://www.macalester.edu/~ajohns24/data/flights_small.csv") %>% 
@@ -123,6 +124,7 @@ In the exercises below, you'll be studying trends in flights leaving from three 
 
 Before we do any modeling or analysis, take a few moments to familiarize yourself with the data. (What kinds of things are you looking at here?)
     
+When and where are flights originating, are they early/late in the day, on a Thursday?
     
 \
 \
@@ -136,8 +138,11 @@ The `total_time` variable measures the total time of a flight experience in minu
 - practice identifying which visualization, numerical summary, and modeling tools are appropriate here; and
 
 - build your comfort level in working in the open-ended settings which are common outside the classroom environment. 
-    
-    
+
+```{r}
+small_flights <- flights %>%
+  select(total_time, airport, distance)
+```
     
     
 \
@@ -150,21 +155,26 @@ The `total_time` variable measures the total time of a flight experience in minu
 Let's consider the relationship between `total_time` and `airport` through some directed questions. (You might have already taken some of these steps above.)
     
 a. .    
-    ```{r}
-    # Calculate the average total_time for each airport
+```{r}
+small_flights %>%
+  group_by(airport) %>%
+  summarise(mean(total_time))
 
-    # Visualize the relationship between total_time and airport
+small_flights %>%
+  ggplot(aes(x = airport, y = total_time)) +
+  geom_boxplot()
 
-    # Model the relationship between total_time and airport
-
-    ```
+airport_time_model <- lm(total_time ~ airport, small_flights)
+summary(airport_time_model)$coef
+```
 
 b. Interpret each value in the estimate column.
 
+The average LAX total flight time is about 3 hours, where as MSP and ORD have 60 and 45 minute lower average total times.
 
 c. On average, which airport has the longest total_time? The shortest?
     
-
+LAX & MSP
 
 
 
@@ -177,13 +187,18 @@ c. On average, which airport has the longest total_time? The shortest?
 
 
 a. Interpret the standard error in the `airportORD` row.
-
+About 68% of flights take between 38 and 50 minutes less total time than an average flight from LAX.
 
 b. Using the Central Limit Theorem and information in the model summary table, sketch the sampling distribution for $\hat{\beta}_2$, possible estimates of the true `airportORD` coefficient $\beta_2$. Interpret what the sampling distribution tells us.
 
 
+
 c. Construct and interpret a 95% CI for $\beta_2$ using the 68-95-99.7 Rule. Check your work using `confint()`.    
-    
+```{r}
+c( -44.24520 - 2 * 6.125113,  -44.24520 + 2 * 6.125113 )
+confint(airport_time_model)
+```
+
     
 
     
@@ -198,19 +213,22 @@ c. Construct and interpret a 95% CI for $\beta_2$ using the 68-95-99.7 Rule. Che
 For the `airportORD` coefficient $\beta_2$, let's test the hypothesis that $\beta_2 < 0$.
 
 a. In words and the context of this model, interpret the meaning of this hypothesis.    
-
+We are testing that ORD has a lower average total flight time.
 
 b. Report and interpret the `t value` for this test.       
-
+-7.223573
 
 c. Report and interpret the p-value for this test.    
+```{r}
+1.004667e-12/2
+```
 
 
 d. Based on this work, what conclusion do you make about the hypothesis test? Is it statistically significant? Practically significant?    
-
+It is both practically and statistically significant.
 
 e. What type of error might you be making?    
-    
+Type I (false positive)
 
 
 
@@ -225,6 +243,10 @@ e. What type of error might you be making?
 
 Of course, a flight's `distance` is also a factor in `total_time`. Thus in exploring how the `total_time` of a flight (in minutes) might vary by the `airport` from which it departs, we should control for this factor. Take a basic first attempt at exploring the relationship among these three variables. Again, *you* get to determine how deep you want to go here.
 
+```{r}
+airport_model_2 <- lm(total_time ~ airport + distance, small_flights)
+summary(airport_model_2)$coef
+```
 
 
 
@@ -239,16 +261,27 @@ Of course, a flight's `distance` is also a factor in `total_time`. Thus in explo
 Let's consider the relationship of `total_time` with `airport` and `distance` through some directed questions. (You might have already taken some of these steps above.)
 
 a. Visualize the relationship between total_time, airport, and distance.    
+```{r}
+small_flights %>%
+  ggplot(aes(x = distance, y = total_time, color = airport)) +
+  geom_smooth()
+```
 
 
 b. Model the relationship WITH an interaction term. Write out formulas of `total_time` vs `distance` for each of the 3 airports.
+```{r}
+airport_model_3 <- lm(total_time ~ airport * distance, small_flights)
+summary(airport_model_3)$coef
+```
 
 
 c. Explain what the *signs* (+ or -) of the `distance`, `airportMSP:distance`, and `airportORD:distance` coefficients indicate about the relationships of interest.
-
+The positive sign on distance means that as the flight distance goes up, generally the total time also increases. The positive interaction terms mean that the other airports have a greater increase in time per mile than LAX.
 
 d. Notice that the interaction coefficients are statistically significant. Are they practically significant?
+They are statistically significant.
 
+The distances range into thousands of miles, and for these values, MSP is on average 20 minutes slower per 1000 miles, ORD is 18 minutes slower on average. These are practically significant.
 
 
 
@@ -262,20 +295,25 @@ d. Notice that the interaction coefficients are statistically significant. Are t
 ## Exercise 8: total_time vs airport & distance: directed inferential analysis I    
 
 a. Model the relationship WITHOUT an interaction term. Report the model summary table.
+```{r}
+summary(airport_model_2)$coef
+```
 
 
 b. Interpret the `airportORD` and `distance` coefficients.
-
+For each mile, the total time increases by about 7 seconds, and on average ORD takes about 15.5 minutes longer controlling for distance compared to a flight out of LAX.
 
 c. Report and interpret the R-squared of this model.
+```{r}
+summary(airport_model_2)
 
+0.8034
+```
+
+This is a reasonably tight fit, but not excellent.
 
 d. Considering this model alongside that without a `distance` predictor, how did controlling for `distance` change / enhance our understanding of the flights leaving from ORD?
-
-
-e. Bonus: explain *how* this "Simpson's Paradox" might have happened. 
-
-
+Controlling for distance, we see that flights leaving ORD tend to run 15 minutes slower than those from LAX (or even MSP).
 
 
 
@@ -290,7 +328,7 @@ e. Bonus: explain *how* this "Simpson's Paradox" might have happened.
 For further practice, suppose we were to test $H_0: \beta_1 = 0$ vs $H_a: \beta_1 > 0$ where $\beta_1$ is the actual `airportMSP` coefficient.    
 
 a. Interpret the meaning of $H_0$ in this context.
-
+We are testing if the average total flight time for MSP is longer than LAX (controlling for dist?).
 
 b. Using the Central Limit Theorem and information in the model summary table, sketch the sampling distribution for $\hat{\beta}_1$, possible estimates of $\beta_1$ that we'd expect if $H_0$ were true. Indicate the range on the x-axis.
 
@@ -300,7 +338,7 @@ c. Mark our sample estimate on your sketch.
 
 d. Use the 68-95-99.7 Rule to approximate the p-value for this test: less than 0.0015, between 0.0015 & 0.025, between 0.025 & 0.16, or greater than 0.16.
     
-    
+greater than 0.16
 
 
 
@@ -314,12 +352,16 @@ d. Use the 68-95-99.7 Rule to approximate the p-value for this test: less than 0
 
 a. Your neighbor is flying out of MSP tomorrow on a 1000 mile flight. Compute a interpret a 95% prediction interval for their total flight experience.
 
+```{r}
+predict(airport_model_3, newdata=data.frame(airport = "MSP", distance = 1000), interval = "predict", level = 0.95)
+```
+
 
 b. Compute a interpret a 95% confidence interval for the *typical* total flight experience for all 1000 mile flights leaving from MSP.
-    
 
-
-
+```{r}
+predict(airport_model_3, newdata=data.frame(airport = "MSP", distance = 1000), interval = "confidence", level = 0.95)
+```
 
 
 \
@@ -331,10 +373,15 @@ b. Compute a interpret a 95% confidence interval for the *typical* total flight 
 ## Exercise 11: Last question on this model
 
 a. If we had to pick just *one* predictor, which is the better predictor of `total_time`, `airport` or `distance`?    
-
+`distance`
 
 b. Are `airport` and `distance` multicollinear predictors? Provide some evidence, either visual or numerical.
-    
+Nope.
+```{r}
+small_flights %>%
+  ggplot(aes(x = airport, y = distance)) +
+  geom_jitter()
+```
         
 
 \
@@ -347,14 +394,24 @@ b. Are `airport` and `distance` multicollinear predictors? Provide some evidence
 
 ```{r}
 # Plot departure_delay (the number of minutes late or early a flight leaves)
+flights %>%
+  ggplot(aes(x = airport, y = departure_delay)) +
+  geom_boxplot()
 
 # Define a new variable, is_late, which indicates  
 # whether a flight leaves at least 15 minutes late (>= 15)
+flights %<>%
+  mutate(is_late = departure_delay >= 15)
 
 # Plot is_late
+flights %>%
+  ggplot(aes(x = airport, color = is_late)) +
+  geom_bar()
 
 # Challenge: Calculate the observed chance of late flights on each day of the week
-
+flights %>%
+  group_by(day_of_week) %>%
+  summarize(mean(is_late))
 ```
     
 
@@ -366,6 +423,10 @@ b. Are `airport` and `distance` multicollinear predictors? Provide some evidence
 
 So what exactly is associated with an increase risk of a flight being late? Take a basic first attempt at exploring the relationship of `is_late` with: `airport`, `distance`, `day_of_week`, `month`, and `late_night_departure` (whether the flight leaves between 10pm and 6am). Again, you get to determine how deep you want to go here.
 
+```{r}
+airport_model_4 <- glm(is_late ~ airport + distance + day_of_week + month + late_night_departure, flights, family="binomial")
+summary(airport_model_4)
+```
 
 
 
@@ -379,18 +440,22 @@ So what exactly is associated with an increase risk of a flight being late? Take
 ## Exercise 14: Modeling the chances of being late: directed analysis
 
 a. Construct a model of `is_late` by `airport`, `distance`, `day_of_week`, `month`, and `late_night_departure` (whether the flight leaves between 10pm and 6am). Report the model summary table.
+```{r}
+airport_model_5 <- glm(is_late ~ airport * distance + day_of_week + month + late_night_departure, flights, family="binomial")
+summary(airport_model_5)
+```
 
 
 b. Controlling for distance, what is the ideal airport, day of week, month, and time of day for a flight (presuming one doesn't want to be late)?
-
+from MSP, late at night on a Saturday in September
 
 c. Suppose somebody is taking a 1000 mile flight out of MSP on a Monday afternoon (day 1) in March (month 3). What's the probability their flight will be late?
+
+```{r}
+predict(airport_model_5, newdata=data.frame(airport = "MSP", distance = 1000, day_of_week="1", month="3", late_night_departure=FALSE), interval = "predict", level = 0.95, type="response")
+```
     
-    
-    
-    
-    
-    
+
 \
 \
 
@@ -401,6 +466,9 @@ c. Suppose somebody is taking a 1000 mile flight out of MSP on a Monday afternoo
 
 a. Interpret the `distance` coefficient (not on the log scale).
 
+```{r}
+exp(-4.768e-05)
+```
 
 b. Interpret the `airportORD` coefficient (not on the log scale).
 
