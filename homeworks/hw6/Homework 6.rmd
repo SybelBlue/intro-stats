@@ -1,30 +1,12 @@
-# Warning labels
+---
+title: "Homework 4"
+author: Logan Caraco
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
 
-
-\
-
-
-
-**Goals**
-
-- Practice hypothesis testing.    
-- Explore common abuses of hypothesis testing so that (1) you don't make these mistakes yourself; and (2) you can read others' work with a healthy critical eye.    
-- Review. The exercises focus on new concepts, yet they require the understanding of "old" material. Though you won't be required to do so, make sure you could write down model formulas, make predictions, interpret coefficients, etc if asked.    
-
-\
-\
-
-
-**Directions**    
-
-- These exercises will be due as Homework. The usual directions apply (eg: you must use the homework template).
-- Make sure that all interpretations, explanations, etc are contextually meaningful / newspaper appropriate.    
-
-
-\
-\
-\
-\
 
 
 ## Exercises
@@ -354,5 +336,5 @@ Use this simulation to "prove" 2 different claims. For both, be sure to indicate
 
 ## Exercise 9: OPTIONAL: Bonferroni
 
-NOTE: If you are a Bio major, you should give this a peak.  
+NOTE: If you are a Bio major, you should give this a peek.  
 \[\mathcal{No~Thanks!}\]  
