@@ -16,6 +16,13 @@ library(dplyr)
 library(magrittr)
 ```
 
+## Introduction 
+
+I will be exploring the following question:
+
+> Is a favorable opinion of Donald Trump related to marriage?
+
+I will be using data collected by derived from Card's Against Humanity's [Pulse of the Nation survey](https://thepulseofthenation.com/). It contains many entries across many arbitrary categories. I will be focusing on the three outlined below.
 
 ```{r Import Data, echo = FALSE}
 raw_survey_data <- read.csv("https://www.macalester.edu/~ajohns24/data/pulse_of_the_nation.csv")
@@ -33,21 +40,35 @@ raw_survey_data <- raw_survey_data %>%
   `trump_approval` |	Do you approve, disapprove, or neither approve nor disapprove of how Donald Trump is handling his job as president?
   `marital` |	What is your marital status?
 
+## Setup
+
+I created the following filtering functions to refine the data and applied them to a streamlined dataset.
+
 ```{r Filtering Functions}
+# a missing answer or a declined to answer is indicated by the string "DK/REF"
 is.known <- function (x) { x != "DK/REF" }
-is.voting_age <- function (x) { 18 <= x && x <= 90 }
+# narrowing down only individuals within a reasonable voting age
+is.voting_age <- function (x) { 18 <= x && x <= 88 }
 ```
 
 ```{r Main Dataset}
 marital_trump <- raw_survey_data %>%
+  # only use these variables
   select(age, marital, trump_approval) %>%
+  # only use entries which have defined answers
   filter(is.known(trump_approval), is.known(marital)) %>% 
+  # only use entries with valid ages
   filter(is.finite(age), is.voting_age(age)) %>%
+  # approves_trump is only true for Somewhat or Strongly Approve
   mutate(approves_trump = endsWith(trump_approval, "Approve")) %>%
+  # is_married is only true for individuals currently married
   mutate(is_married = marital == "Married")
 ```
 
+I then generated helper functions for the plotting of models and probabilistic results.
+
 ```{r Plotting Functions}
+# returns a copy of marital_trump with added predictions from the model
 add_predictions <- function (model) {
   marital_trump %>% 
     mutate(log_odds = model$fitted.values) %>% 
@@ -55,6 +76,7 @@ add_predictions <- function (model) {
     mutate(probability = odds / (1 + odds))
 }
 
+# plots the given data in the proper range with aesthetics ast
 plot_probability <- function(data, ast) {
   ggplot(data, ast) + 
     geom_smooth(se = FALSE) +
@@ -62,12 +84,52 @@ plot_probability <- function(data, ast) {
 }
 ```
 
+## Trump Approval by Age and Marriage
+
+### Setup
+
+The model equation is
+\[\texttt{log_odds_approve} = \beta_1 + \beta_{a} \texttt{age} + \beta_M \texttt{married}\]
+
+Which generates hypotheses:
+
+\[H_0: \text{Marriage is not associated with approval } (\beta_M = 0)\]
+\[H_A: \text{Marriage is associated with approval } (\beta_M \neq 0)\]
+
+### Model Values
+
+The model is generated and summarized here. The fully unpacked predictions dataset is stored as `approval_predictions` for later reference.
+
 ``` {r}
-approval_model <- glm(approves_trump ~ age * is_married, marital_trump, family = "binomial")
-summary(approval_model)$coefficients
+approval_model <- glm(approves_trump ~ age + is_married, marital_trump, family = "binomial")
 
 approval_predictions <- add_predictions(approval_model)
 ```
+
+### Model Visualization
+
+Preliminary visualization of the model trends look promising, there is a clear distinction between married and unmarried data points. If the correlation is statistically significant, then it also appears to be practically significant.
+
+```{r}
+approval_predictions %>%
+  plot_probability(aes(x = age, y = probability, color = is_married)) +
+  geom_jitter()
+```
+
+### First Result Interpretation
+
+``` {r}
+confint(approval_model)
+summary(approval_model)$coef
+```
+
+Controlling for age, marriage is a statistically significant predictor of trump approval (we can reject $H_0$ with $p < 0.05$). There is less than a five percent chance we have observed this strong of a correlation by chance.
+
+Notice that age, however, is a *very* significant predictor ($p < 0.0001\%$), and would make sense if it were correlated with marital status. Therefore, I will investigate how inter-related age and marriage are to determine if marriage is truly a predictor.
+
+## Multi-colinearity of Age and Marriage
+
+Consider the following model of probability of marriage by age.
 
 ``` {r}
 marital_model <- glm(is_married ~ age, marital_trump, family = "binomial")
@@ -75,40 +137,71 @@ summary(marital_model)$coefficients
 
 marital_model %>%
   add_predictions %>%
-  plot_probability(aes(x = age, y = probability))
+  plot_probability(aes(x = age, y = probability)) + 
+  geom_point()
 ```
 
-``` {r}
-approval_predictions %>%
-  plot_probability(aes(x = age, y = probability, color = is_married))
-```
+Note the strong trend line and highly significant p-value ($p < 0.01\%$). Unsurprisingly, age is a terrific predictor of the odds of marriage.
 
+Having demonstrating that age and marriage are highly correlated, what is the relationship of `approval` by `age` and `marriage` taking into account the interaction between them.
+
+## Trump Approval by Age and Marriage II
+
+### Setup
+
+We will use the same hypotheses as the original, though the equation has been adjusted to include an interaction term:
+\[\texttt{log_odds_approve} = \beta_1 + \beta_{a} \texttt{age} + \beta_M \texttt{married} + \beta_I \texttt{age} * \texttt{married} \]
+
+### Model Values and Visualization
   
 ```{r}
-ggplot(marital_trump, aes(x = age, color = approves_trump)) +
-  geom_boxplot() +
-  facet_wrap(~is_married, labeller = label_both) +
-  theme(axis.text.y=element_blank(),
-        axis.ticks.y=element_blank())
-```
+interaction_model <- glm(approves_trump ~ age * is_married, marital_trump, family = "binomial")
 
-```{r}
-confint(approval_model)
-
-approval_predictions %>%
-  plot_probability(aes(x = age, y = probability, color = is_married)) +
+interaction_model %>% 
+  add_predictions %>%
+  plot_probability(aes(x = age, y = probability, color = is_married)) + 
   geom_jitter()
 ```
 
+### Second Result Interpretation
+
+``` {r}
+confint(interaction_model)
+summary(interaction_model)$coef
+```
+
+Controlling for age and its interactions with marriage, we see that marriage is not a statistically significant predictor of trump approval (we cannot reject $H_0$). 
+
+Notice that the confidence intervals for $\beta_M$ and $\beta_I$ contain 0 as a possibility, we cannot draw any conclusions on these values. However, age is once again statistically significant. To complete this investigation, I will analyze approval by age.
+
+
+## Trump Approval by Age Alone
+
+### Setup
+
+We must revise the hypotheses to test.
+
+\[H_0: \text{Age is not associated with approval } (\beta_a = 0)\]
+\[H_A: \text{Age is positively associated with approval } (\beta_a > 0)\]
+
+### Data Visualization
 
 ```{r}
 age_approval <- glm(approves_trump ~ age, marital_trump, family = "binomial")
-summary(age_approval)$coefficients
-confint(age_approval)
 
 age_approval %>%
   add_predictions %>%
   plot_probability(aes(x = age, y = probability))
 ```
 
+### Third Result Interpretation
 
+```{r}
+summary(age_approval)$coef
+```
+
+As we have seen, Trump approval is very well predicted by age alone (reject $H_0$, $p < 0.05$). 
+
+## Final Conclusion
+
+From these results we can determine that Trump approval has far more to do with age than marriage. However, because of the strong correlation between age and marriage, when controlling for age, marriage is a decent predictor of Trump approval. This model neglects the common sense correlation between age and marriage, so it is best to not use marriage as a predictor in a model.
