@@ -91,10 +91,31 @@ The following are great ways to continue playing around with data:
 **Getting started**
 
 
-```{r}
+
+```r
 # Load packages
 library(ggplot2)
 library(dplyr)
+```
+
+```
+## 
+## Attaching package: 'dplyr'
+```
+
+```
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+```
+
+```
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+```
+
+```r
 library(magrittr)
 
 # Import data on flights
@@ -139,7 +160,8 @@ The `total_time` variable measures the total time of a flight experience in minu
 
 - build your comfort level in working in the open-ended settings which are common outside the classroom environment. 
 
-```{r}
+
+```r
 small_flights <- flights %>%
   select(total_time, airport, distance)
 ```
@@ -155,17 +177,40 @@ small_flights <- flights %>%
 Let's consider the relationship between `total_time` and `airport` through some directed questions. (You might have already taken some of these steps above.)
     
 a. .    
-```{r}
+
+```r
 small_flights %>%
   group_by(airport) %>%
   summarise(mean(total_time))
+```
 
+```
+## # A tibble: 3 x 2
+##   airport `mean(total_time)`
+## * <chr>                <dbl>
+## 1 LAX                   188.
+## 2 MSP                   131.
+## 3 ORD                   144.
+```
+
+```r
 small_flights %>%
   ggplot(aes(x = airport, y = total_time)) +
   geom_boxplot()
+```
 
+<img src="22-Review-Notes_files/figure-html/unnamed-chunk-3-1.png" width="672" />
+
+```r
 airport_time_model <- lm(total_time ~ airport, small_flights)
 summary(airport_time_model)$coef
+```
+
+```
+##              Estimate Std. Error   t value      Pr(>|t|)
+## (Intercept) 188.46789   4.715848 39.964792 3.003556e-209
+## airportMSP  -57.05672   7.691169 -7.418472  2.531541e-13
+## airportORD  -44.24520   6.125113 -7.223573  1.004667e-12
 ```
 
 b. Interpret each value in the estimate column.
@@ -194,9 +239,24 @@ b. Using the Central Limit Theorem and information in the model summary table, s
 
 
 c. Construct and interpret a 95% CI for $\beta_2$ using the 68-95-99.7 Rule. Check your work using `confint()`.    
-```{r}
+
+```r
 c( -44.24520 - 2 * 6.125113,  -44.24520 + 2 * 6.125113 )
+```
+
+```
+## [1] -56.49543 -31.99497
+```
+
+```r
 confint(airport_time_model)
+```
+
+```
+##                 2.5 %    97.5 %
+## (Intercept) 179.21376 197.72202
+## airportMSP  -72.14946 -41.96399
+## airportORD  -56.26479 -32.22561
 ```
 
     
@@ -219,8 +279,13 @@ b. Report and interpret the `t value` for this test.
 -7.223573
 
 c. Report and interpret the p-value for this test.    
-```{r}
+
+```r
 1.004667e-12/2
+```
+
+```
+## [1] 5.023335e-13
 ```
 
 
@@ -243,9 +308,18 @@ Type I (false positive)
 
 Of course, a flight's `distance` is also a factor in `total_time`. Thus in exploring how the `total_time` of a flight (in minutes) might vary by the `airport` from which it departs, we should control for this factor. Take a basic first attempt at exploring the relationship among these three variables. Again, *you* get to determine how deep you want to go here.
 
-```{r}
+
+```r
 airport_model_2 <- lm(total_time ~ airport + distance, small_flights)
 summary(airport_model_2)$coef
+```
+
+```
+##               Estimate  Std. Error    t value     Pr(>|t|)
+## (Intercept) 41.4710648 3.239919801 12.8000282 7.724212e-35
+## airportMSP   2.0875328 3.664848656  0.5696096 5.690710e-01
+## airportORD  15.4945330 2.980072890  5.1993805 2.426129e-07
+## distance     0.1183471 0.001939042 61.0337820 0.000000e+00
 ```
 
 
@@ -261,17 +335,35 @@ summary(airport_model_2)$coef
 Let's consider the relationship of `total_time` with `airport` and `distance` through some directed questions. (You might have already taken some of these steps above.)
 
 a. Visualize the relationship between total_time, airport, and distance.    
-```{r}
+
+```r
 small_flights %>%
   ggplot(aes(x = distance, y = total_time, color = airport)) +
   geom_smooth()
 ```
 
+```
+## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
+```
+
+<img src="22-Review-Notes_files/figure-html/unnamed-chunk-7-1.png" width="672" />
+
 
 b. Model the relationship WITH an interaction term. Write out formulas of `total_time` vs `distance` for each of the 3 airports.
-```{r}
+
+```r
 airport_model_3 <- lm(total_time ~ airport * distance, small_flights)
 summary(airport_model_3)$coef
+```
+
+```
+##                         Estimate  Std. Error    t value      Pr(>|t|)
+## (Intercept)          50.95281822 3.767471304 13.5244078  2.222088e-38
+## airportMSP          -16.93389172 6.635741222 -2.5519217  1.086172e-02
+## airportORD           -1.77811954 4.865775631 -0.3654339  7.148653e-01
+## distance              0.11071331 0.002493818 44.3950992 3.997793e-238
+## airportMSP:distance   0.02048474 0.006820176  3.0035498  2.735328e-03
+## airportORD:distance   0.01820058 0.004224879  4.3079521  1.811280e-05
 ```
 
 
@@ -295,8 +387,17 @@ The distances range into thousands of miles, and for these values, MSP is on ave
 ## Exercise 8: total_time vs airport & distance: directed inferential analysis I    
 
 a. Model the relationship WITHOUT an interaction term. Report the model summary table.
-```{r}
+
+```r
 summary(airport_model_2)$coef
+```
+
+```
+##               Estimate  Std. Error    t value     Pr(>|t|)
+## (Intercept) 41.4710648 3.239919801 12.8000282 7.724212e-35
+## airportMSP   2.0875328 3.664848656  0.5696096 5.690710e-01
+## airportORD  15.4945330 2.980072890  5.1993805 2.426129e-07
+## distance     0.1183471 0.001939042 61.0337820 0.000000e+00
 ```
 
 
@@ -304,10 +405,40 @@ b. Interpret the `airportORD` and `distance` coefficients.
 For each mile, the total time increases by about 7 seconds, and on average ORD takes about 15.5 minutes longer controlling for distance compared to a flight out of LAX.
 
 c. Report and interpret the R-squared of this model.
-```{r}
-summary(airport_model_2)
 
+```r
+summary(airport_model_2)
+```
+
+```
+## 
+## Call:
+## lm(formula = total_time ~ airport + distance, data = small_flights)
+## 
+## Residuals:
+##    Min     1Q Median     3Q    Max 
+## -54.38 -20.28  -8.87   5.97 452.10 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(>|t|)    
+## (Intercept) 41.471065   3.239920  12.800  < 2e-16 ***
+## airportMSP   2.087533   3.664849   0.570    0.569    
+## airportORD  15.494533   2.980073   5.199 2.43e-07 ***
+## distance     0.118347   0.001939  61.034  < 2e-16 ***
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 39.19 on 996 degrees of freedom
+## Multiple R-squared:  0.8034,	Adjusted R-squared:  0.8028 
+## F-statistic:  1357 on 3 and 996 DF,  p-value: < 2.2e-16
+```
+
+```r
 0.8034
+```
+
+```
+## [1] 0.8034
 ```
 
 This is a reasonably tight fit, but not excellent.
@@ -352,15 +483,27 @@ greater than 0.16
 
 a. Your neighbor is flying out of MSP tomorrow on a 1000 mile flight. Compute a interpret a 95% prediction interval for their total flight experience.
 
-```{r}
+
+```r
 predict(airport_model_3, newdata=data.frame(airport = "MSP", distance = 1000), interval = "predict", level = 0.95)
+```
+
+```
+##       fit      lwr      upr
+## 1 165.217 88.85559 241.5784
 ```
 
 
 b. Compute a interpret a 95% confidence interval for the *typical* total flight experience for all 1000 mile flights leaving from MSP.
 
-```{r}
+
+```r
 predict(airport_model_3, newdata=data.frame(airport = "MSP", distance = 1000), interval = "confidence", level = 0.95)
+```
+
+```
+##       fit      lwr      upr
+## 1 165.217 158.9162 171.5178
 ```
 
 
@@ -377,11 +520,14 @@ a. If we had to pick just *one* predictor, which is the better predictor of `tot
 
 b. Are `airport` and `distance` multicollinear predictors? Provide some evidence, either visual or numerical.
 Nope.
-```{r}
+
+```r
 small_flights %>%
   ggplot(aes(x = airport, y = distance)) +
   geom_jitter()
 ```
+
+<img src="22-Review-Notes_files/figure-html/unnamed-chunk-13-1.png" width="672" />
         
 
 \
@@ -392,12 +538,17 @@ small_flights %>%
 ## Exercise 12: Running late
 
 
-```{r}
+
+```r
 # Plot departure_delay (the number of minutes late or early a flight leaves)
 flights %>%
   ggplot(aes(x = airport, y = departure_delay)) +
   geom_boxplot()
+```
 
+<img src="22-Review-Notes_files/figure-html/unnamed-chunk-14-1.png" width="672" />
+
+```r
 # Define a new variable, is_late, which indicates  
 # whether a flight leaves at least 15 minutes late (>= 15)
 flights %<>%
@@ -407,11 +558,28 @@ flights %<>%
 flights %>%
   ggplot(aes(x = airport, color = is_late)) +
   geom_bar()
+```
 
+<img src="22-Review-Notes_files/figure-html/unnamed-chunk-14-2.png" width="672" />
+
+```r
 # Challenge: Calculate the observed chance of late flights on each day of the week
 flights %>%
   group_by(day_of_week) %>%
   summarize(mean(is_late))
+```
+
+```
+## # A tibble: 7 x 2
+##   day_of_week `mean(is_late)`
+## * <fct>                 <dbl>
+## 1 1                     0.204
+## 2 2                     0.227
+## 3 3                     0.253
+## 4 4                     0.192
+## 5 5                     0.231
+## 6 6                     0.152
+## 7 7                     0.238
 ```
     
 
@@ -423,9 +591,55 @@ flights %>%
 
 So what exactly is associated with an increase risk of a flight being late? Take a basic first attempt at exploring the relationship of `is_late` with: `airport`, `distance`, `day_of_week`, `month`, and `late_night_departure` (whether the flight leaves between 10pm and 6am). Again, you get to determine how deep you want to go here.
 
-```{r}
+
+```r
 airport_model_4 <- glm(is_late ~ airport + distance + day_of_week + month + late_night_departure, flights, family="binomial")
 summary(airport_model_4)
+```
+
+```
+## 
+## Call:
+## glm(formula = is_late ~ airport + distance + day_of_week + month + 
+##     late_night_departure, family = "binomial", data = flights)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -1.1061  -0.7492  -0.5788  -0.3252   2.4754  
+## 
+## Coefficients:
+##                            Estimate Std. Error z value Pr(>|z|)    
+## (Intercept)              -1.381e+00  3.659e-01  -3.775  0.00016 ***
+## airportMSP               -5.587e-01  2.718e-01  -2.055  0.03984 *  
+## airportORD                4.295e-01  1.893e-01   2.269  0.02329 *  
+## distance                 -7.683e-06  1.257e-04  -0.061  0.95126    
+## day_of_week2              1.524e-01  3.216e-01   0.474  0.63567    
+## day_of_week3              2.419e-01  2.898e-01   0.835  0.40390    
+## day_of_week4             -1.030e-01  2.977e-01  -0.346  0.72928    
+## day_of_week5              2.151e-01  2.941e-01   0.731  0.46452    
+## day_of_week6             -3.761e-01  3.374e-01  -1.115  0.26491    
+## day_of_week7              2.047e-01  3.007e-01   0.681  0.49595    
+## month2                    3.444e-01  3.435e-01   1.003  0.31605    
+## month3                    9.419e-02  3.373e-01   0.279  0.78005    
+## month4                   -5.566e-01  3.854e-01  -1.444  0.14868    
+## month5                    1.534e-01  3.402e-01   0.451  0.65197    
+## month6                    5.418e-01  3.412e-01   1.588  0.11228    
+## month7                   -2.516e-01  3.703e-01  -0.679  0.49689    
+## month8                    9.517e-02  3.363e-01   0.283  0.77717    
+## month9                   -9.703e-01  4.128e-01  -2.350  0.01875 *  
+## month11                  -1.214e+00  4.630e-01  -2.623  0.00872 ** 
+## month12                  -3.204e-02  3.436e-01  -0.093  0.92571    
+## late_night_departureTRUE -9.354e-01  7.822e-01  -1.196  0.23175    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 1041.01  on 999  degrees of freedom
+## Residual deviance:  980.52  on 979  degrees of freedom
+## AIC: 1022.5
+## 
+## Number of Fisher Scoring iterations: 5
 ```
 
 
@@ -440,9 +654,57 @@ summary(airport_model_4)
 ## Exercise 14: Modeling the chances of being late: directed analysis
 
 a. Construct a model of `is_late` by `airport`, `distance`, `day_of_week`, `month`, and `late_night_departure` (whether the flight leaves between 10pm and 6am). Report the model summary table.
-```{r}
+
+```r
 airport_model_5 <- glm(is_late ~ airport * distance + day_of_week + month + late_night_departure, flights, family="binomial")
 summary(airport_model_5)
+```
+
+```
+## 
+## Call:
+## glm(formula = is_late ~ airport * distance + day_of_week + month + 
+##     late_night_departure, family = "binomial", data = flights)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -1.1106  -0.7574  -0.5781  -0.3306   2.5094  
+## 
+## Coefficients:
+##                            Estimate Std. Error z value Pr(>|z|)    
+## (Intercept)              -1.328e+00  3.930e-01  -3.379 0.000728 ***
+## airportMSP               -7.674e-01  5.101e-01  -1.504 0.132490    
+## airportORD                3.628e-01  3.134e-01   1.158 0.246958    
+## distance                 -4.768e-05  1.684e-04  -0.283 0.777016    
+## day_of_week2              1.480e-01  3.217e-01   0.460 0.645485    
+## day_of_week3              2.447e-01  2.900e-01   0.844 0.398646    
+## day_of_week4             -1.024e-01  2.978e-01  -0.344 0.730888    
+## day_of_week5              2.179e-01  2.943e-01   0.740 0.459176    
+## day_of_week6             -3.773e-01  3.375e-01  -1.118 0.263729    
+## day_of_week7              2.024e-01  3.010e-01   0.672 0.501384    
+## month2                    3.317e-01  3.445e-01   0.963 0.335678    
+## month3                    8.222e-02  3.383e-01   0.243 0.807986    
+## month4                   -5.583e-01  3.857e-01  -1.447 0.147776    
+## month5                    1.455e-01  3.407e-01   0.427 0.669331    
+## month6                    5.415e-01  3.414e-01   1.586 0.112689    
+## month7                   -2.540e-01  3.705e-01  -0.685 0.493058    
+## month8                    8.951e-02  3.367e-01   0.266 0.790355    
+## month9                   -9.740e-01  4.130e-01  -2.358 0.018365 *  
+## month11                  -1.214e+00  4.632e-01  -2.622 0.008746 ** 
+## month12                  -3.220e-02  3.442e-01  -0.094 0.925453    
+## late_night_departureTRUE -9.336e-01  7.828e-01  -1.193 0.233034    
+## airportMSP:distance       2.483e-04  5.196e-04   0.478 0.632735    
+## airportORD:distance       6.346e-05  2.657e-04   0.239 0.811237    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 1041.01  on 999  degrees of freedom
+## Residual deviance:  980.28  on 977  degrees of freedom
+## AIC: 1026.3
+## 
+## Number of Fisher Scoring iterations: 5
 ```
 
 
@@ -451,8 +713,14 @@ from MSP, late at night on a Saturday in September
 
 c. Suppose somebody is taking a 1000 mile flight out of MSP on a Monday afternoon (day 1) in March (month 3). What's the probability their flight will be late?
 
-```{r}
+
+```r
 predict(airport_model_5, newdata=data.frame(airport = "MSP", distance = 1000, day_of_week="1", month="3", late_night_departure=FALSE), interval = "predict", level = 0.95, type="response")
+```
+
+```
+##         1 
+## 0.1403385
 ```
     
 
@@ -466,15 +734,25 @@ predict(airport_model_5, newdata=data.frame(airport = "MSP", distance = 1000, da
 
 a. Interpret the `distance` coefficient (not on the log scale).
 
-```{r}
+
+```r
 exp(-4.768e-05) ^ 1000
+```
+
+```
+## [1] 0.9534388
 ```
 
 Each 1000 miles decreases the odds of lateness by 5%.
 
 b. Interpret the `airportORD` coefficient (not on the log scale).
-```{r}
+
+```r
 exp(3.628e-01)
+```
+
+```
+## [1] 1.437348
 ```
 
 Flying from ORD increases the odds of lateness by 43%.
